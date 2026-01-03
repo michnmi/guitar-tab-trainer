@@ -23,7 +23,155 @@
     .note .t { font-size: 12px; opacity: 0.7; margin-top: 6px;}
     .note.hit { border-color: #1a7f37; }
     .note.miss { border-color: #b42318; }
+    .note.skipped { border-color: #ff9900; opacity: 0.7; }
     .note.next { border-width: 2px; }
+
+    /* Guitar fretboard styles */
+    .fretboard {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      background: linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .string {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #888;
+      border-radius: 1px;
+    }
+
+    .string.e-high { top: 30px; }
+    .string.b { top: 70px; }
+    .string.g { top: 110px; }
+    .string.d { top: 150px; }
+    .string.a { top: 190px; }
+    .string.e-low { top: 230px; }
+
+    .hit-zone {
+      position: absolute;
+      left: 60px;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #00ff88;
+      box-shadow: 0 0 10px #00ff88;
+      z-index: 10;
+      transition: all 0.2s ease;
+    }
+
+    .hit-zone.hit-feedback {
+      background: #00ff00;
+      box-shadow: 0 0 30px #00ff00, 0 0 60px #00ff00;
+      width: 8px;
+      transform: scaleY(1.2);
+    }
+
+    .hit-zone.miss-feedback {
+      background: #ff4444;
+      box-shadow: 0 0 30px #ff4444, 0 0 60px #ff4444;
+      width: 8px;
+      transform: scaleY(1.2);
+    }
+
+    .hit-zone.skip-feedback {
+      background: #ff9900;
+      box-shadow: 0 0 20px #ff9900, 0 0 40px #ff9900;
+      width: 6px;
+      transform: scaleY(1.1);
+    }
+
+    /* Full-screen feedback overlay */
+    .feedback-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s ease;
+    }
+
+    .feedback-overlay.hit {
+      background: radial-gradient(circle, rgba(26, 127, 55, 0.3) 0%, rgba(26, 127, 55, 0.1) 50%, transparent 100%);
+      opacity: 1;
+    }
+
+    .feedback-overlay.miss {
+      background: radial-gradient(circle, rgba(180, 35, 24, 0.3) 0%, rgba(180, 35, 24, 0.1) 50%, transparent 100%);
+      opacity: 1;
+    }
+
+    /* Enhanced fret note feedback */
+    .fret-note.hit {
+      background: #1a7f37;
+      box-shadow: 0 0 25px #1a7f37, 0 0 50px #1a7f37;
+      transform: translate(-50%, -50%) scale(1.3);
+      border-color: #00ff00;
+      border-width: 3px;
+    }
+
+    .fret-note.miss {
+      background: #b42318;
+      box-shadow: 0 0 25px #b42318, 0 0 50px #b42318;
+      transform: translate(-50%, -50%) scale(1.3);
+      border-color: #ff4444;
+      border-width: 3px;
+    }
+
+    .fret-note.skipped {
+      background: #ff9900;
+      box-shadow: 0 0 15px #ff9900, 0 0 30px #ff9900;
+      transform: translate(-50%, -50%) scale(1.1);
+      border-color: #ffaa33;
+      border-width: 2px;
+      opacity: 0.7;
+    }
+
+    .fret-note {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #fff;
+      background: #4a90e2;
+      transform: translate(-50%, -50%);
+      transition: all 0.1s ease;
+      z-index: 5;
+    }
+
+    .fret-note.hit {
+      background: #1a7f37;
+      box-shadow: 0 0 15px #1a7f37;
+    }
+
+    .fret-note.miss {
+      background: #b42318;
+      box-shadow: 0 0 15px #b42318;
+    }
+
+    .string-label {
+      position: absolute;
+      left: 10px;
+      transform: translateY(-50%);
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 3px #000;
+    }
 
     .flash {
       outline: 3px solid #999;
@@ -64,6 +212,13 @@
         <select id="mode">
           <option value="practice" selected>Practice (advance on correct note)</option>
           <option value="rhythm">Rhythm (must hit within window)</option>
+        </select>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="exercise">Exercise</label>
+        <select id="exercise">
+          <option value="">Loading exercises...</option>
         </select>
       </div>
 
@@ -111,30 +266,145 @@
     </div>
 
     <div class="panel" style="flex:1; min-width:360px;">
-      <div class="big">Notes to play</div>
-      <div id="notes" class="notes" style="margin-top:12px;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="big">Guitar Tab</div>
+        <div id="scoreDisplay" style="display: flex; gap: 16px; font-size: 16px; font-weight: bold;">
+          <div style="color: #1a7f37;">✓ <span id="successCount">0</span></div>
+          <div style="color: #b42318;">✗ <span id="failCount">0</span></div>
+          <div style="color: #ff9900;">⊝ <span id="skippedCount">0</span></div>
+          <div style="color: #666;">Accuracy: <span id="accuracy">0%</span></div>
+        </div>
+      </div>
+      <div class="fretboard" id="fretboard">
+        <!-- String lines -->
+        <div class="string e-high"></div>
+        <div class="string b"></div>
+        <div class="string g"></div>
+        <div class="string d"></div>
+        <div class="string a"></div>
+        <div class="string e-low"></div>
+
+        <!-- String labels -->
+        <div class="string-label" style="top: 30px;">E</div>
+        <div class="string-label" style="top: 70px;">B</div>
+        <div class="string-label" style="top: 110px;">G</div>
+        <div class="string-label" style="top: 150px;">D</div>
+        <div class="string-label" style="top: 190px;">A</div>
+        <div class="string-label" style="top: 230px;">E</div>
+
+        <!-- Hit zone -->
+        <div class="hit-zone"></div>
+      </div>
+
+      <!-- Fallback notes display for debugging (hidden by default) -->
+      <div id="notes" class="notes" style="margin-top:12px; display: none;"></div>
+
       <div class="hint">
-        This MVP checks single notes only (no chords). Use Practice mode if you want it to advance
-        when you hit the right note, regardless of timing.
+        Notes move from right to left. Play them when they reach the green line.
+        Use Practice mode if you want it to advance when you hit the right note, regardless of timing.
       </div>
     </div>
   </div>
 
+  <!-- Full-screen feedback overlay -->
+  <div id="feedbackOverlay" class="feedback-overlay"></div>
+
 <script>
 /**
  * -------------------------
- * Song definition (beats)
+ * Exercise management
  * -------------------------
- * You can later load this from your Go backend as JSON.
  */
-const song = [
-  { beat: 0, midi: 40 }, // E2
-  { beat: 1, midi: 45 }, // A2
-  { beat: 2, midi: 50 }, // D3
-  { beat: 3, midi: 55 }, // G3
-  { beat: 4, midi: 59 }, // B3
-  { beat: 5, midi: 64 }, // E4
-];
+let availableExercises = [];
+let currentExercise = null;
+
+// Default fallback exercise (same as original hardcoded)
+const defaultExercise = {
+  name: "Basic Strings",
+  description: "Learn the open strings: E-A-D-G-B-E",
+  bpm: 90,
+  difficulty: "beginner",
+  notes: [
+    { beat: 0, midi: 40 }, // E2
+    { beat: 1, midi: 45 }, // A2
+    { beat: 2, midi: 50 }, // D3
+    { beat: 3, midi: 55 }, // G3
+    { beat: 4, midi: 59 }, // B3
+    { beat: 5, midi: 64 }, // E4
+  ]
+};
+
+// For backward compatibility
+const song = defaultExercise.notes;
+
+async function loadAvailableExercises() {
+  try {
+    const exerciseFiles = ['basic-strings.json', 'chromatic-scale.json', 'simple-melody.json', 'house-of-rising-sun.json'];
+    availableExercises = [];
+
+    for (const fileName of exerciseFiles) {
+      try {
+        const response = await fetch(`exercises/${fileName}`);
+        if (response.ok) {
+          const exercise = await response.json();
+          exercise.fileName = fileName;
+          availableExercises.push(exercise);
+        } else {
+          console.warn(`Failed to load exercise: ${fileName}`);
+        }
+      } catch (e) {
+        console.warn(`Error loading exercise ${fileName}:`, e);
+      }
+    }
+
+    // Use default exercise if no exercises were loaded
+    if (availableExercises.length === 0) {
+      availableExercises.push(defaultExercise);
+    }
+
+    populateExerciseDropdown();
+    loadExercise(availableExercises[0]);
+  } catch (e) {
+    console.error('Failed to load exercises:', e);
+    // Fallback to default exercise
+    availableExercises = [defaultExercise];
+    populateExerciseDropdown();
+    loadExercise(defaultExercise);
+  }
+}
+
+function populateExerciseDropdown() {
+  const select = $("exercise");
+  select.innerHTML = "";
+
+  for (const exercise of availableExercises) {
+    const option = document.createElement("option");
+    option.value = exercise.fileName || "default";
+    option.textContent = `${exercise.name} (${exercise.difficulty})`;
+    select.appendChild(option);
+  }
+}
+
+function loadExercise(exercise) {
+  currentExercise = exercise;
+
+  // Update the global song array for backward compatibility
+  song.length = 0;
+  song.push(...exercise.notes);
+
+  // Update BPM if specified
+  if (exercise.bpm) {
+    setBpm(exercise.bpm);
+  }
+
+  // Reset the practice session
+  if (state.practicing) {
+    $("btnStop").click();
+  }
+  resetPractice();
+
+  console.log(`Loaded exercise: ${exercise.name} (${exercise.notes.length} notes)`);
+}
 
 /**
  * -------------------------
@@ -147,6 +417,19 @@ const CENTS_TOLERANCE = 40;  // pitch forgiveness
 const COOLDOWN_SEC = 0.22;   // prevent double triggers on one note
 const DEFAULT_BPM = 90;
 const BEATS_PER_BAR = 4;
+
+/**
+ * -------------------------
+ * Guitar fretboard constants
+ * -------------------------
+ */
+const TUNING = [40, 45, 50, 55, 59, 64]; // MIDI values for standard tuning (E-A-D-G-B-E)
+const STRING_NAMES = ["E", "A", "D", "G", "B", "E"];
+const STRING_POSITIONS = [230, 190, 150, 110, 70, 30]; // Y positions for each string
+const LOOKAHEAD_BEATS = 4;   // notes appear 4 beats early
+const HIT_ZONE_X = 60;       // X position of hit zone
+const NOTE_TRAVEL_DISTANCE = 400; // pixels notes travel
+const MAX_FRET = 12;         // maximum fret to consider
 
 const $ = (id) => document.getElementById(id);
 
@@ -167,6 +450,37 @@ function secondsToBeats(seconds, bpm) {
 }
 function beatsToSeconds(beats, bpm) {
   return (beats * 60) / bpm;
+}
+
+/**
+ * Convert MIDI note to guitar string and fret position
+ * Returns { string: index, fret: number, y: pixel position } or null if unplayable
+ */
+function midiToFret(midiNote) {
+  const candidates = [];
+
+  // Check each string for possible fret positions
+  for (let stringIdx = 0; stringIdx < TUNING.length; stringIdx++) {
+    const openStringMidi = TUNING[stringIdx];
+    const fret = midiNote - openStringMidi;
+
+    // Must be a valid fret (0-MAX_FRET)
+    if (fret >= 0 && fret <= MAX_FRET) {
+      candidates.push({
+        string: stringIdx,
+        fret: fret,
+        y: STRING_POSITIONS[stringIdx],
+        stringName: STRING_NAMES[stringIdx]
+      });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Prefer lower frets for easier playability
+  // If multiple options, choose the one with lowest fret number
+  candidates.sort((a, b) => a.fret - b.fret);
+  return candidates[0];
 }
 
 /**
@@ -197,7 +511,8 @@ function yinPitch(buffer, sampleRate) {
   const d = new Float32Array(maxTau + 1);
   for (let tau = minTau; tau <= maxTau; tau++) {
     let sum = 0;
-    for (let i = 0; i < bufferSize - tau; i++) {
+    const maxI = Math.max(0, bufferSize - tau);
+    for (let i = 0; i < maxI; i++) {
       const delta = buffer[i] - buffer[i + tau];
       sum += delta * delta;
     }
@@ -209,30 +524,30 @@ function yinPitch(buffer, sampleRate) {
   let runningSum = 0;
   for (let tau = 1; tau <= maxTau; tau++) {
     runningSum += d[tau];
-    cmndf[tau] = d[tau] * tau / (runningSum || 1);
+    cmndf[tau] = runningSum === 0 ? 1 : d[tau] * tau / runningSum;
   }
 
   let tauEstimate = -1;
   for (let tau = minTau; tau <= maxTau; tau++) {
-    if (cmndf[tau] < threshold) {
-      while (tau + 1 <= maxTau && cmndf[tau + 1] < cmndf[tau]) tau++;
+    if (tau < cmndf.length && cmndf[tau] < threshold) {
+      while (tau + 1 <= maxTau && tau + 1 < cmndf.length && cmndf[tau + 1] < cmndf[tau]) tau++;
       tauEstimate = tau;
       break;
     }
   }
-  if (tauEstimate === -1) return { freq: null, conf: 0, rms };
+  if (tauEstimate === -1 || tauEstimate >= cmndf.length) return { freq: null, conf: 0, rms };
 
   // Parabolic interpolation
   const x0 = tauEstimate > 1 ? tauEstimate - 1 : tauEstimate;
-  const x2 = tauEstimate + 1 <= maxTau ? tauEstimate + 1 : tauEstimate;
+  const x2 = tauEstimate + 1 <= maxTau && tauEstimate + 1 < cmndf.length ? tauEstimate + 1 : tauEstimate;
 
-  const s0 = cmndf[x0];
-  const s1 = cmndf[tauEstimate];
-  const s2 = cmndf[x2];
+  const s0 = x0 < cmndf.length ? cmndf[x0] : 1;
+  const s1 = tauEstimate < cmndf.length ? cmndf[tauEstimate] : 1;
+  const s2 = x2 < cmndf.length ? cmndf[x2] : 1;
 
   const a = (s0 + s2 - 2 * s1) / 2;
   const b = (s2 - s0) / 2;
-  const betterTau = (a !== 0) ? (tauEstimate - b / (2 * a)) : tauEstimate;
+  const betterTau = (Math.abs(a) > 1e-10) ? (tauEstimate - b / (2 * a)) : tauEstimate;
 
   const freq = sampleRate / betterTau;
   const conf = Math.max(0, Math.min(1, 1 - cmndf[tauEstimate]));
@@ -262,6 +577,152 @@ function octaveCorrect(playedFreq, expectedMidi) {
 
 /**
  * -------------------------
+ * Visual notes management
+ * -------------------------
+ */
+function clearVisualNotes() {
+  for (const [noteId, noteData] of state.visualNotes) {
+    if (noteData.element && noteData.element.parentNode) {
+      noteData.element.remove();
+    }
+  }
+  state.visualNotes.clear();
+  state.nextNoteId = 0;
+}
+
+function createVisualNote(eventData, fretInfo) {
+  const noteId = state.nextNoteId++;
+  const fretboard = $("fretboard");
+
+  const noteElement = document.createElement("div");
+  noteElement.className = "fret-note";
+  noteElement.textContent = fretInfo.fret === 0 ? "0" : fretInfo.fret.toString();
+
+  // Start position (right side of fretboard)
+  const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
+  noteElement.style.left = startX + "px";
+  noteElement.style.top = fretInfo.y + "px";
+
+  fretboard.appendChild(noteElement);
+
+  const noteData = {
+    element: noteElement,
+    eventData: eventData,
+    fretInfo: fretInfo,
+    noteId: noteId,
+    spawned: false
+  };
+
+  state.visualNotes.set(noteId, noteData);
+  return noteData;
+}
+
+function updateVisualNotes(beatNow) {
+  const fretboard = $("fretboard");
+  const notesToRemove = [];
+
+  // Spawn new notes that should be visible
+  for (const event of state.events) {
+    if (!event.visualNote && beatNow >= event.beat - LOOKAHEAD_BEATS && !event.judged) {
+      const fretInfo = midiToFret(event.midi);
+      if (fretInfo) {
+        const noteData = createVisualNote(event, fretInfo);
+        event.visualNote = noteData;
+        noteData.spawned = true;
+      }
+    }
+  }
+
+  // Update positions of existing notes
+  for (const [noteId, noteData] of state.visualNotes) {
+    const event = noteData.eventData;
+    const timeToHit = event.beat - beatNow;
+
+    // Calculate position based on remaining time
+    const progress = (LOOKAHEAD_BEATS - timeToHit) / LOOKAHEAD_BEATS;
+    const currentX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE * (1 - progress);
+
+    noteData.element.style.left = currentX + "px";
+
+    // Update visual state based on hit/miss/skipped
+    if (event.hit && !noteData.element.classList.contains("hit")) {
+      noteData.element.classList.add("hit");
+    }
+    if (event.miss && !noteData.element.classList.contains("miss")) {
+      noteData.element.classList.add("miss");
+    }
+    if (event.skipped && !noteData.element.classList.contains("skipped")) {
+      noteData.element.classList.add("skipped");
+    }
+
+    // Remove notes that have passed the hit zone
+    if (timeToHit < -1) { // 1 beat grace period after missing
+      notesToRemove.push(noteId);
+    }
+  }
+
+  // Clean up old notes
+  for (const noteId of notesToRemove) {
+    const noteData = state.visualNotes.get(noteId);
+    if (noteData && noteData.element && noteData.element.parentNode) {
+      noteData.element.remove();
+    }
+    state.visualNotes.delete(noteId);
+  }
+}
+
+function updateScoreDisplay() {
+  $("successCount").textContent = state.successCount;
+  $("failCount").textContent = state.failCount;
+  $("skippedCount").textContent = state.skippedCount;
+
+  const total = state.successCount + state.failCount + state.skippedCount;
+  const accuracy = total === 0 ? 0 : Math.round((state.successCount / total) * 100);
+  $("accuracy").textContent = accuracy + "%";
+}
+
+function showHitZoneFeedback(isHit, isSkipped = false) {
+  const hitZone = $("fretboard").querySelector(".hit-zone");
+
+  // Remove any existing feedback classes
+  hitZone.classList.remove("hit-feedback", "miss-feedback", "skip-feedback");
+
+  // Add appropriate feedback class
+  if (isHit) {
+    hitZone.classList.add("hit-feedback");
+  } else if (isSkipped) {
+    hitZone.classList.add("skip-feedback");
+  } else {
+    hitZone.classList.add("miss-feedback");
+  }
+
+  // Remove feedback after animation
+  setTimeout(() => {
+    hitZone.classList.remove("hit-feedback", "miss-feedback", "skip-feedback");
+  }, 300);
+}
+
+function showFullScreenFeedback(isHit) {
+  const overlay = $("feedbackOverlay");
+
+  // Remove any existing feedback classes
+  overlay.classList.remove("hit", "miss");
+
+  // Add appropriate feedback class
+  if (isHit) {
+    overlay.classList.add("hit");
+  } else {
+    overlay.classList.add("miss");
+  }
+
+  // Remove feedback after animation
+  setTimeout(() => {
+    overlay.classList.remove("hit", "miss");
+  }, 200);
+}
+
+/**
+ * -------------------------
  * Rendering
  * -------------------------
  */
@@ -277,6 +738,7 @@ function renderNotes() {
     if (i === state.nextIdx) cls += " next";
     if (ev.hit) cls += " hit";
     if (ev.miss) cls += " miss";
+    if (ev.skipped) cls += " skipped";
 
     div.className = cls;
     div.innerHTML = `
@@ -293,16 +755,38 @@ function renderNotes() {
  * -------------------------
  */
 function getNextUnhitIndex() {
-  return state.events.findIndex(ev => !ev.hit && !ev.miss);
+  return state.events.findIndex(ev => !ev.hit && !ev.miss && !ev.skipped);
 }
 
 function judgeMisses(beatNow) {
   const win = timingWindowBeats(state.bpm);
 
-  for (const ev of state.events) {
+  for (let i = 0; i < state.events.length; i++) {
+    const ev = state.events[i];
     if (!ev.judged && beatNow > ev.beat + win) {
-      ev.miss = !ev.hit;
       ev.judged = true;
+
+      if (!ev.hit) {
+        // Check if any input was attempted during this note's window
+        const hadInputAttempt = state.inputAttemptedDuringWindow.has(i);
+
+        if (hadInputAttempt) {
+          // Wrong note was played
+          ev.miss = true;
+          state.failCount++;
+          showHitZoneFeedback(false);
+        } else {
+          // No input at all - note was skipped
+          ev.skipped = true;
+          state.skippedCount++;
+          showHitZoneFeedback(false, true); // isHit=false, isSkipped=true
+        }
+
+        updateScoreDisplay();
+      }
+
+      // Clean up tracking for this event
+      state.inputAttemptedDuringWindow.delete(i);
     }
   }
 
@@ -339,6 +823,9 @@ function tryMatchPlayed(beatNow, playedFreq) {
     }
     if (idx === -1) return null;
   }
+
+  // Mark that input was attempted for this note (for skipped vs missed tracking)
+  state.inputAttemptedDuringWindow.add(idx);
 
   const ev = state.events[idx];
 
@@ -419,15 +906,28 @@ const state = {
 
   // metronome scheduler:
   lastMetroBeat: -1,
+  nextMetroTime: 0,
 
   // detection stability:
   stableCount: 0,
   lastMidiRounded: null,
   lastTriggerAt: 0,
 
+  // Track input attempts for skipped vs missed detection
+  inputAttemptedDuringWindow: new Set(), // Set of event indices that had input attempts
+
   // song events:
-  events: song.map(e => ({...e, hit:false, miss:false, judged:false })),
+  events: song.map(e => ({...e, hit:false, miss:false, skipped:false, judged:false, visualNote:null })),
   nextIdx: 0,
+
+  // visual notes on fretboard
+  visualNotes: new Map(),  // noteId -> visual note element
+  nextNoteId: 0,
+
+  // score tracking
+  successCount: 0,
+  failCount: 0,
+  skippedCount: 0,
 
   ignoreUntil: 0,          // audioCtx time until which we ignore detection (ducking)
   lastRms: 0,              // optional: simple onset gating baseline
@@ -437,13 +937,26 @@ function resetPractice() {
   state.practicing = false;
   state.startTime = 0;
   state.lastMetroBeat = -1;
+  state.nextMetroTime = 0;
 
   state.stableCount = 0;
   state.lastMidiRounded = null;
   state.lastTriggerAt = 0;
 
-  state.events = song.map(e => ({...e, hit:false, miss:false, judged:false }));
+  state.events = song.map(e => ({...e, hit:false, miss:false, skipped:false, judged:false, visualNote:null }));
   state.nextIdx = 0;
+
+  // Clear input tracking
+  state.inputAttemptedDuringWindow.clear();
+
+  // Clear visual notes
+  clearVisualNotes();
+
+  // Reset score counters
+  state.successCount = 0;
+  state.failCount = 0;
+  state.skippedCount = 0;
+  updateScoreDisplay();
 
   $("now").textContent = "—";
   $("lastNote").textContent = "—";
@@ -481,16 +994,24 @@ function loop() {
     $("now").textContent = `beat=${beatNow.toFixed(3)} @ ${state.bpm} BPM`;
   }
 
-  // Metronome tick (including count-in if enabled)
+  // Metronome tick (including count-in if enabled) with precise timing
   if ($("metroOn").checked) {
-    const beatInt = Math.floor(beatNow);
-    if (beatInt !== state.lastMetroBeat) {
-      state.lastMetroBeat = beatInt;
+    if (now >= state.nextMetroTime && state.nextMetroTime > 0) {
+      const currentBeatInt = Math.floor(beatNow);
 
       // Determine downbeat within bars (handles negative beats too)
-      const barPos = ((beatInt % BEATS_PER_BAR) + BEATS_PER_BAR) % BEATS_PER_BAR;
+      const barPos = ((currentBeatInt % BEATS_PER_BAR) + BEATS_PER_BAR) % BEATS_PER_BAR;
       const isDownbeat = (barPos === 0);
       metroTick(isDownbeat);
+
+      // Schedule next tick precisely
+      const beatDuration = beatsToSeconds(1, state.bpm);
+      state.nextMetroTime += beatDuration;
+
+      // Prevent accumulating drift by resetting if we get too far behind
+      if (state.nextMetroTime < now - beatDuration) {
+        state.nextMetroTime = now + beatDuration;
+      }
     }
   }
 
@@ -510,7 +1031,10 @@ function loop() {
   $("levelText").textContent =
     `rms=${rms.toFixed(4)} conf=${conf.toFixed(2)} freq=${freq ? freq.toFixed(1) : "—"}`;
 
-  // If we’re still in count-in, do not judge notes (but still show detected pitch)
+  // Update visual notes animation
+  updateVisualNotes(beatNow);
+
+  // If we're still in count-in, do not judge notes (but still show detected pitch)
   if (beatNow < 0) {
     state.rafId = requestAnimationFrame(loop);
     return;
@@ -558,6 +1082,18 @@ function loop() {
 
       $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
       $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
+
+      // Update score counters
+      if (verdict.ok) {
+        state.successCount++;
+      } else {
+        state.failCount++;
+      }
+      updateScoreDisplay();
+
+      // Show enhanced visual feedback
+      showHitZoneFeedback(verdict.ok);
+      showFullScreenFeedback(verdict.ok);
     } else {
       $("lastNoteMeta").textContent = `no expected note to match (try Practice mode)`;
       $("lastNote").style.outlineColor = "#999";
@@ -599,9 +1135,20 @@ $("mode").addEventListener("change", (e) => {
   $("status").textContent = `mode=${state.mode}`;
 });
 
+$("exercise").addEventListener("change", (e) => {
+  const selectedFileName = e.target.value;
+  const exercise = availableExercises.find(ex => (ex.fileName || "default") === selectedFileName);
+  if (exercise) {
+    loadExercise(exercise);
+  }
+});
+
 $("btnMic").addEventListener("click", async () => {
   try {
-    if (state.audioCtx) return;
+    if (state.audioCtx || state.micStream) {
+      console.log("Microphone already initialized");
+      return;
+    }
 
     state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -626,10 +1173,53 @@ $("btnMic").addEventListener("click", async () => {
     $("status").textContent = "mic ready";
     $("btnStart").disabled = false;
     $("btnMic").textContent = "Mic Enabled ✓";
+    $("btnMic").disabled = true;
   } catch (e) {
-    $("micStatus").textContent = `Mic error: ${e?.message || e}`;
-    $("status").textContent = "mic error";
-    console.error(e);
+    let errorMessage = "Unknown error";
+    let statusMessage = "mic error";
+
+    if (e.name === "NotAllowedError") {
+      errorMessage = "Microphone permission denied. Please allow microphone access and try again.";
+      statusMessage = "permission denied";
+    } else if (e.name === "NotFoundError") {
+      errorMessage = "No microphone found. Please connect a microphone and try again.";
+      statusMessage = "no microphone";
+    } else if (e.name === "NotReadableError") {
+      errorMessage = "Microphone in use by another application. Please close other apps and try again.";
+      statusMessage = "mic busy";
+    } else if (e.name === "OverconstrainedError") {
+      errorMessage = "Microphone doesn't support required settings. Trying with default settings...";
+      statusMessage = "retrying...";
+      // Try again with less strict constraints
+      try {
+        state.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const src = state.audioCtx.createMediaStreamSource(state.micStream);
+        state.analyser = state.audioCtx.createAnalyser();
+        state.analyser.fftSize = 8192;
+        src.connect(state.analyser);
+
+        $("micStatus").textContent = "Enabled ✓ (basic settings)";
+        $("status").textContent = "mic ready";
+        $("btnStart").disabled = false;
+        $("btnMic").textContent = "Mic Enabled ✓";
+        $("btnMic").disabled = true;
+        return;
+      } catch (retryError) {
+        errorMessage = `Microphone failed: ${retryError?.message || retryError}`;
+        statusMessage = "mic failed";
+      }
+    } else {
+      errorMessage = `Microphone error: ${e?.message || e}`;
+    }
+
+    $("micStatus").textContent = errorMessage;
+    $("status").textContent = statusMessage;
+    console.error("Microphone initialization failed:", e);
+
+    // Reset state on error
+    state.audioCtx = null;
+    state.micStream = null;
+    state.analyser = null;
   }
 });
 
@@ -651,7 +1241,9 @@ $("btnStart").addEventListener("click", async () => {
   // Set start time in the future so beatNow starts negative (count-in)
   state.startTime = state.audioCtx.currentTime + beatsToSeconds(countInBeats, state.bpm);
 
-  state.lastMetroBeat = Math.floor(currentBeat(state.audioCtx.currentTime)); // so first tick aligns
+  // Schedule first metronome tick precisely
+  const beatDuration = beatsToSeconds(1, state.bpm);
+  state.nextMetroTime = state.audioCtx.currentTime + beatDuration;
 
   $("btnStop").disabled = false;
   $("btnStart").disabled = true;
@@ -662,17 +1254,49 @@ $("btnStart").addEventListener("click", async () => {
 
 $("btnStop").addEventListener("click", () => {
   state.practicing = false;
-  if (state.rafId) cancelAnimationFrame(state.rafId);
 
+  // Cancel animation frame
+  if (state.rafId) {
+    cancelAnimationFrame(state.rafId);
+    state.rafId = null;
+  }
+
+  // Reset practice state
+  resetPractice();
+
+  // Clean up visual notes
+  clearVisualNotes();
+
+  // Clean up audio resources (but keep mic enabled for quick restart)
+  if (state.audioCtx && state.audioCtx.state !== "closed") {
+    // Don't close the AudioContext to avoid reinitialization overhead
+    // Just stop any scheduled audio
+    state.ignoreUntil = 0;
+    state.nextMetroTime = 0;
+  }
+
+  // Update UI
   $("btnStop").disabled = true;
   $("btnStart").disabled = false;
   $("status").textContent = "stopped";
+
+  // Clear detection displays
+  $("lastNote").textContent = "—";
+  $("lastNoteMeta").textContent = "—";
+  $("now").textContent = "—";
+  if ($("lastNote").classList.contains("flash")) {
+    $("lastNote").classList.remove("flash");
+  }
 });
 
 // Initial render
 setBpm(DEFAULT_BPM);
 renderNotes();
+updateScoreDisplay();
 $("status").textContent = "ready";
+
+// Load available exercises
+loadAvailableExercises();
 </script>
 </body>
 </html>

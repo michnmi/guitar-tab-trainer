@@ -1,0 +1,19 @@
+{
+  "name": "Simple Melody",
+  "description": "A simple melody using frets 0-3",
+  "bpm": 100,
+  "difficulty": "beginner",
+  "notes": [
+    { "beat": 0, "midi": 40 },
+    { "beat": 1, "midi": 43 },
+    { "beat": 2, "midi": 45 },
+    { "beat": 3, "midi": 48 },
+    { "beat": 4, "midi": 50 },
+    { "beat": 5, "midi": 53 },
+    { "beat": 6, "midi": 50 },
+    { "beat": 7, "midi": 48 },
+    { "beat": 8, "midi": 45 },
+    { "beat": 9, "midi": 43 },
+    { "beat": 10, "midi": 40 }
+  ]
+}

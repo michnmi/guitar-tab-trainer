@@ -1,0 +1,21 @@
+{
+  "name": "Chromatic Scale",
+  "description": "Play a chromatic scale from low E to high E",
+  "bpm": 80,
+  "difficulty": "intermediate",
+  "notes": [
+    { "beat": 0, "midi": 40 },
+    { "beat": 0.5, "midi": 41 },
+    { "beat": 1, "midi": 42 },
+    { "beat": 1.5, "midi": 43 },
+    { "beat": 2, "midi": 44 },
+    { "beat": 2.5, "midi": 45 },
+    { "beat": 3, "midi": 46 },
+    { "beat": 3.5, "midi": 47 },
+    { "beat": 4, "midi": 48 },
+    { "beat": 4.5, "midi": 49 },
+    { "beat": 5, "midi": 50 },
+    { "beat": 5.5, "midi": 51 },
+    { "beat": 6, "midi": 52 }
+  ]
+}
