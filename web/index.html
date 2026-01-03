@@ -628,7 +628,8 @@ function createVisualNote(eventData, fretInfo) {
     fretInfo: fretInfo,
     noteId: noteId,
     spawned: false,
-    duration: noteDuration
+    duration: noteDuration,
+    feedbackShown: false
   };
 
   state.visualNotes.set(noteId, noteData);
@@ -662,6 +663,24 @@ function updateVisualNotes(beatNow) {
     const currentX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE * (1 - progress);
 
     noteData.element.style.left = currentX + "px";
+
+    // Check if right edge has passed the hit zone for visual feedback
+    const noteWidth = parseFloat(noteData.element.style.width) || 32;
+    const rightEdgeX = currentX + noteWidth;
+    const hasPassedHitZone = rightEdgeX <= HIT_ZONE_X;
+
+    // Trigger visual feedback when right edge passes hit zone
+    if (hasPassedHitZone && !noteData.feedbackShown && event.judged) {
+      noteData.feedbackShown = true;
+
+      if (event.hit) {
+        showHitZoneFeedback(true);
+      } else if (event.skipped) {
+        showHitZoneFeedback(false, true);
+      } else if (event.miss) {
+        showHitZoneFeedback(false, false);
+      }
+    }
 
     // Update visual state based on hit/miss/skipped
     if (event.hit && !noteData.element.classList.contains("hit")) {
@@ -793,12 +812,10 @@ function judgeMisses(beatNow) {
           // Wrong note was played
           ev.miss = true;
           state.failCount++;
-          showHitZoneFeedback(false);
         } else {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
-          showHitZoneFeedback(false, true); // isHit=false, isSkipped=true
         }
 
         updateScoreDisplay();
@@ -1110,8 +1127,7 @@ function loop() {
       }
       updateScoreDisplay();
 
-      // Show enhanced visual feedback
-      showHitZoneFeedback(verdict.ok);
+      // Show full screen feedback (hit zone feedback now handled by visual timeline)
       showFullScreenFeedback(verdict.ok);
     } else {
       $("lastNoteMeta").textContent = `no expected note to match (try Practice mode)`;
