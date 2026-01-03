@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tab Trainer (Monophonic)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+    h1 { margin: 0 0 12px 0; }
+    button, input, select { font-size: 16px; }
+    button { padding: 10px 14px; }
+    .row { display:flex; gap:16px; flex-wrap: wrap; align-items:center; }
+    .panel { border:1px solid #ddd; border-radius:12px; padding:16px; min-width: 320px; }
+    .big { font-size: 20px; font-weight: 650; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    label { display:block; font-size: 12px; opacity: 0.75; margin-bottom: 6px; }
+
+    .notes { display:flex; gap:10px; flex-wrap: wrap; }
+    .note {
+      border:1px solid #ddd; border-radius:10px; padding:10px 12px; min-width:84px;
+      text-align:center;
+    }
+    .note .t { font-size: 12px; opacity: 0.7; margin-top: 6px;}
+    .note.hit { border-color: #1a7f37; }
+    .note.miss { border-color: #b42318; }
+    .note.next { border-width: 2px; }
+
+    .flash {
+      outline: 3px solid #999;
+      border-radius: 10px;
+      padding: 4px 8px;
+      display: inline-block;
+    }
+
+    progress { width: 100%; height: 18px; }
+    .hint { opacity: 0.75; font-size: 13px; margin-top: 10px; line-height: 1.35; }
+  </style>
+</head>
+
+<body>
+  <h1>Tab Trainer (Single Notes)</h1>
+
+  <div class="row">
+    <button id="btnMic">Enable Mic</button>
+    <button id="btnStart" disabled>Start</button>
+    <button id="btnStop" disabled>Stop</button>
+    <div class="mono" id="status" style="opacity:0.8;">—</div>
+  </div>
+
+  <div class="row" style="margin-top:16px;">
+    <div class="panel" style="min-width:360px;">
+      <div class="big">Tempo</div>
+
+      <div style="margin-top:10px;">
+        <label for="bpm">BPM</label>
+        <div class="row" style="gap:10px;">
+          <input id="bpm" type="range" min="40" max="200" value="90" />
+          <input id="bpmNum" type="number" min="40" max="200" value="90" style="width:90px;" />
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="practice" selected>Practice (advance on correct note)</option>
+          <option value="rhythm">Rhythm (must hit within window)</option>
+        </select>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Metronome</label>
+        <div class="row" style="gap:10px;">
+          <label class="mono" style="display:flex; gap:10px; align-items:center; font-size:14px; opacity:1;">
+            <input id="metroOn" type="checkbox" checked />
+            On
+          </label>
+
+          <label class="mono" style="display:flex; gap:10px; align-items:center; font-size:14px; opacity:1;">
+            <input id="countInOn" type="checkbox" checked />
+            4-beat count-in
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="big">Mic</div>
+        <div id="micStatus" class="mono" style="margin-top:6px;">Not enabled</div>
+
+        <div style="margin-top:12px;">
+          <label>Input level</label>
+          <progress id="level" value="0" max="1"></progress>
+          <div id="levelText" class="mono" style="margin-top:6px;">rms=—</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="big">Last registered note</div>
+          <div id="lastNote" class="mono" style="font-size:22px; margin-top:6px;">—</div>
+          <div id="lastNoteMeta" class="mono" style="opacity:0.8; margin-top:6px;">—</div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div class="big">Now</div>
+          <div id="now" class="mono" style="margin-top:6px;">—</div>
+        </div>
+
+        <div class="hint">
+          Debug tip: pluck one string cleanly (open A or D) and let it ring.
+          Low E can be harder to detect.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1; min-width:360px;">
+      <div class="big">Notes to play</div>
+      <div id="notes" class="notes" style="margin-top:12px;"></div>
+      <div class="hint">
+        This MVP checks single notes only (no chords). Use Practice mode if you want it to advance
+        when you hit the right note, regardless of timing.
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * -------------------------
+ * Song definition (beats)
+ * -------------------------
+ * You can later load this from your Go backend as JSON.
+ */
+const song = [
+  { beat: 0, midi: 40 }, // E2
+  { beat: 1, midi: 45 }, // A2
+  { beat: 2, midi: 50 }, // D3
+  { beat: 3, midi: 55 }, // G3
+  { beat: 4, midi: 59 }, // B3
+  { beat: 5, midi: 64 }, // E4
+];
+
+/**
+ * -------------------------
+ * Tuning knobs (MVP)
+ * -------------------------
+ */
+const MIN_RMS = 0.003;       // gate for "is there sound?"
+const STABLE_FRAMES = 2;     // require stable MIDI rounding for N frames
+const CENTS_TOLERANCE = 40;  // pitch forgiveness
+const COOLDOWN_SEC = 0.22;   // prevent double triggers on one note
+const DEFAULT_BPM = 90;
+const BEATS_PER_BAR = 4;
+
+const $ = (id) => document.getElementById(id);
+
+function midiToName(midi) {
+  const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const n = names[midi % 12];
+  const oct = Math.floor(midi/12) - 1;
+  return `${n}${oct}`;
+}
+function freqToMidi(freq) {
+  return 69 + 12 * Math.log2(freq / 440);
+}
+function centsDiff(midiFloat, midiInt) {
+  return (midiFloat - midiInt) * 100;
+}
+function secondsToBeats(seconds, bpm) {
+  return (seconds * bpm) / 60;
+}
+function beatsToSeconds(beats, bpm) {
+  return (beats * 60) / bpm;
+}
+
+/**
+ * Timing window that adapts to tempo.
+ * Wider at slow BPM so practice doesn't feel punishing.
+ */
+function timingWindowBeats(bpm) {
+  // ~0.60 beats at 40 BPM, ~0.25 beats at 120 BPM, floor at 0.20
+  return Math.max(0.20, Math.min(0.60, (120 / bpm) * 0.25));
+}
+
+/**
+ * -------------------------
+ * YIN pitch detector (monophonic)
+ * -------------------------
+ */
+function yinPitch(buffer, sampleRate) {
+  let rms = 0;
+  for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / buffer.length);
+  if (rms < MIN_RMS) return { freq: null, conf: 0, rms };
+
+  const threshold = 0.12;
+  const bufferSize = buffer.length;
+  const maxTau = Math.floor(sampleRate / 50);
+  const minTau = Math.floor(sampleRate / 1000);
+
+  const d = new Float32Array(maxTau + 1);
+  for (let tau = minTau; tau <= maxTau; tau++) {
+    let sum = 0;
+    for (let i = 0; i < bufferSize - tau; i++) {
+      const delta = buffer[i] - buffer[i + tau];
+      sum += delta * delta;
+    }
+    d[tau] = sum;
+  }
+
+  const cmndf = new Float32Array(maxTau + 1);
+  cmndf[0] = 1;
+  let runningSum = 0;
+  for (let tau = 1; tau <= maxTau; tau++) {
+    runningSum += d[tau];
+    cmndf[tau] = d[tau] * tau / (runningSum || 1);
+  }
+
+  let tauEstimate = -1;
+  for (let tau = minTau; tau <= maxTau; tau++) {
+    if (cmndf[tau] < threshold) {
+      while (tau + 1 <= maxTau && cmndf[tau + 1] < cmndf[tau]) tau++;
+      tauEstimate = tau;
+      break;
+    }
+  }
+  if (tauEstimate === -1) return { freq: null, conf: 0, rms };
+
+  // Parabolic interpolation
+  const x0 = tauEstimate > 1 ? tauEstimate - 1 : tauEstimate;
+  const x2 = tauEstimate + 1 <= maxTau ? tauEstimate + 1 : tauEstimate;
+
+  const s0 = cmndf[x0];
+  const s1 = cmndf[tauEstimate];
+  const s2 = cmndf[x2];
+
+  const a = (s0 + s2 - 2 * s1) / 2;
+  const b = (s2 - s0) / 2;
+  const betterTau = (a !== 0) ? (tauEstimate - b / (2 * a)) : tauEstimate;
+
+  const freq = sampleRate / betterTau;
+  const conf = Math.max(0, Math.min(1, 1 - cmndf[tauEstimate]));
+  return { freq, conf, rms };
+}
+
+/**
+ * Octave correction: if detector locks on a harmonic (octave up/down),
+ * choose the octave variant closest to expected MIDI.
+ */
+function octaveCorrect(playedFreq, expectedMidi) {
+  const playedMidi = freqToMidi(playedFreq);
+  const candidates = [
+    playedMidi,
+    playedMidi - 12,
+    playedMidi + 12,
+  ];
+
+  let best = candidates[0];
+  let bestAbs = Math.abs(centsDiff(candidates[0], expectedMidi));
+  for (const c of candidates) {
+    const a = Math.abs(centsDiff(c, expectedMidi));
+    if (a < bestAbs) { bestAbs = a; best = c; }
+  }
+  return { correctedMidi: best, centsOff: centsDiff(best, expectedMidi) };
+}
+
+/**
+ * -------------------------
+ * Rendering
+ * -------------------------
+ */
+function renderNotes() {
+  const root = $("notes");
+  root.innerHTML = "";
+
+  for (let i = 0; i < state.events.length; i++) {
+    const ev = state.events[i];
+    const div = document.createElement("div");
+
+    let cls = "note";
+    if (i === state.nextIdx) cls += " next";
+    if (ev.hit) cls += " hit";
+    if (ev.miss) cls += " miss";
+
+    div.className = cls;
+    div.innerHTML = `
+      <div class="mono">${midiToName(ev.midi)}</div>
+      <div class="t mono">beat=${ev.beat.toFixed(2)}</div>
+    `;
+    root.appendChild(div);
+  }
+}
+
+/**
+ * -------------------------
+ * Matching logic
+ * -------------------------
+ */
+function getNextUnhitIndex() {
+  return state.events.findIndex(ev => !ev.hit && !ev.miss);
+}
+
+function judgeMisses(beatNow) {
+  const win = timingWindowBeats(state.bpm);
+
+  for (const ev of state.events) {
+    if (!ev.judged && beatNow > ev.beat + win) {
+      ev.miss = !ev.hit;
+      ev.judged = true;
+    }
+  }
+
+  const idx = getNextUnhitIndex();
+  state.nextIdx = idx === -1 ? state.events.length - 1 : idx;
+}
+
+/**
+ * Returns a verdict object for UI:
+ * - practice mode: always compares against NEXT note
+ * - rhythm mode: compares against nearest note within timing window
+ */
+function tryMatchPlayed(beatNow, playedFreq) {
+  const mode = state.mode; // "practice" | "rhythm"
+
+  let idx = -1;
+
+  if (mode === "practice") {
+    idx = getNextUnhitIndex();
+    if (idx === -1) return null;
+  } else {
+    // rhythm mode: find nearest unhit note within window
+    const win = timingWindowBeats(state.bpm);
+    let bestDb = Infinity;
+
+    for (let i = 0; i < state.events.length; i++) {
+      const ev = state.events[i];
+      if (ev.hit) continue; // allow retries until missed
+      const db = Math.abs(beatNow - ev.beat);
+      if (db <= win && db < bestDb) {
+        bestDb = db;
+        idx = i;
+      }
+    }
+    if (idx === -1) return null;
+  }
+
+  const ev = state.events[idx];
+
+  const { correctedMidi, centsOff } = octaveCorrect(playedFreq, ev.midi);
+  const ok = Math.abs(centsOff) <= CENTS_TOLERANCE;
+
+  // timing info (informational in practice mode)
+  const timingBeats = beatNow - ev.beat;
+
+  if (ok) {
+    ev.hit = true;
+    ev.judged = true;
+  }
+
+  return {
+    ok,
+    expected: ev.midi,
+    detected: correctedMidi,
+    centsOff,
+    timingBeats,
+    expectedBeat: ev.beat,
+    mode
+  };
+}
+
+/**
+ * -------------------------
+ * Metronome (click on beat)
+ * -------------------------
+ * Uses AudioContext oscillator for a short "tick".
+ * Downbeat is higher frequency.
+ */
+function metroTick(isDownbeat) {
+  if (!state.audioCtx) return;
+  const ctx = state.audioCtx;
+
+  // Duck detection briefly after we emit the tick (prevents mic hearing the click)
+  state.ignoreUntil = Math.max(state.ignoreUntil, ctx.currentTime + 0.12);
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.value = isDownbeat ? 1200 : 880;
+
+  const t = ctx.currentTime;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.20, t + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(t);
+  osc.stop(t + 0.07);
+}
+
+
+/**
+ * -------------------------
+ * App state
+ * -------------------------
+ */
+const state = {
+  audioCtx: null,
+  analyser: null,
+  micStream: null,
+  rafId: null,
+
+  practicing: false,
+
+  bpm: DEFAULT_BPM,
+  mode: "practice",
+
+  // time model:
+  // beatNow = secondsToBeats(audioCtx.currentTime - startTime, bpm)
+  startTime: 0,
+
+  // metronome scheduler:
+  lastMetroBeat: -1,
+
+  // detection stability:
+  stableCount: 0,
+  lastMidiRounded: null,
+  lastTriggerAt: 0,
+
+  // song events:
+  events: song.map(e => ({...e, hit:false, miss:false, judged:false })),
+  nextIdx: 0,
+
+  ignoreUntil: 0,          // audioCtx time until which we ignore detection (ducking)
+  lastRms: 0,              // optional: simple onset gating baseline
+};
+
+function resetPractice() {
+  state.practicing = false;
+  state.startTime = 0;
+  state.lastMetroBeat = -1;
+
+  state.stableCount = 0;
+  state.lastMidiRounded = null;
+  state.lastTriggerAt = 0;
+
+  state.events = song.map(e => ({...e, hit:false, miss:false, judged:false }));
+  state.nextIdx = 0;
+
+  $("now").textContent = "—";
+  $("lastNote").textContent = "—";
+  $("lastNoteMeta").textContent = "—";
+  $("status").textContent = "ready";
+  renderNotes();
+}
+
+function currentBeat(nowAudioTime) {
+  const elapsed = nowAudioTime - state.startTime;
+  return secondsToBeats(elapsed, state.bpm);
+}
+
+/**
+ * -------------------------
+ * Main loop
+ * -------------------------
+ */
+function loop() {
+  if (!state.practicing) return;
+
+  const now = state.audioCtx.currentTime;
+  const beatNow = currentBeat(now);
+
+  // Ignore detection briefly after metronome tick (prevents self-triggering)
+  if (now < state.ignoreUntil) {
+    state.rafId = requestAnimationFrame(loop);
+    return;
+  }
+
+  // Count-in handling (beatNow < 0 means we're counting in)
+  if (beatNow < 0) {
+    $("now").textContent = `count-in… beat=${beatNow.toFixed(2)} @ ${state.bpm} BPM`;
+  } else {
+    $("now").textContent = `beat=${beatNow.toFixed(3)} @ ${state.bpm} BPM`;
+  }
+
+  // Metronome tick (including count-in if enabled)
+  if ($("metroOn").checked) {
+    const beatInt = Math.floor(beatNow);
+    if (beatInt !== state.lastMetroBeat) {
+      state.lastMetroBeat = beatInt;
+
+      // Determine downbeat within bars (handles negative beats too)
+      const barPos = ((beatInt % BEATS_PER_BAR) + BEATS_PER_BAR) % BEATS_PER_BAR;
+      const isDownbeat = (barPos === 0);
+      metroTick(isDownbeat);
+    }
+  }
+
+  // Read mic samples
+  const buf = new Float32Array(state.analyser.fftSize);
+  state.analyser.getFloatTimeDomainData(buf);
+
+  const { freq, conf, rms } = yinPitch(buf, state.audioCtx.sampleRate);
+  
+  // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
+  const onset = rms > Math.max(0.01, state.lastRms * 1.8);
+  state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
+  
+
+  // UI: input level / debug
+  $("level").value = Math.min(1, rms * 20);
+  $("levelText").textContent =
+    `rms=${rms.toFixed(4)} conf=${conf.toFixed(2)} freq=${freq ? freq.toFixed(1) : "—"}`;
+
+  // If we’re still in count-in, do not judge notes (but still show detected pitch)
+  if (beatNow < 0) {
+    state.rafId = requestAnimationFrame(loop);
+    return;
+  }
+
+  // Pitch → MIDI
+  let midiFloat = null;
+  let midiRounded = null;
+
+  if (freq) {
+    midiFloat = freqToMidi(freq);
+    midiRounded = Math.round(midiFloat);
+  }
+
+  // Stability gate
+  if (midiRounded !== null) {
+    if (state.lastMidiRounded === midiRounded) state.stableCount++;
+    else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
+  } else {
+    state.lastMidiRounded = null;
+    state.stableCount = 0;
+  }
+
+  // Trigger gate
+  const canTrigger = (now - state.lastTriggerAt) > COOLDOWN_SEC;
+
+  if (freq && conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger) {
+    state.lastTriggerAt = now;
+
+    // Match against tab
+    const verdict = tryMatchPlayed(beatNow, freq);
+
+    // UI: show detected note
+    $("lastNote").textContent = midiToName(midiRounded);
+    $("lastNote").classList.add("flash");
+
+    if (verdict) {
+      const detectedName = midiToName(Math.round(verdict.detected));
+      const expectedName = midiToName(verdict.expected);
+
+      $("lastNoteMeta").textContent =
+        `mode=${verdict.mode} expected=${expectedName} detected≈${detectedName} ` +
+        `cents=${verdict.centsOff.toFixed(1)} ` +
+        `Δbeat=${verdict.timingBeats.toFixed(2)} (win≈${timingWindowBeats(state.bpm).toFixed(2)})`;
+
+      $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
+      $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
+    } else {
+      $("lastNoteMeta").textContent = `no expected note to match (try Practice mode)`;
+      $("lastNote").style.outlineColor = "#999";
+      $("status").textContent = "no match";
+    }
+
+    setTimeout(() => $("lastNote").classList.remove("flash"), 200);
+
+    // Update progression
+    judgeMisses(beatNow);
+    renderNotes();
+  } else {
+    // still update misses over time in rhythm mode
+    if (state.mode === "rhythm") {
+      judgeMisses(beatNow);
+      renderNotes();
+    }
+  }
+
+  state.rafId = requestAnimationFrame(loop);
+}
+
+/**
+ * -------------------------
+ * Controls
+ * -------------------------
+ */
+function setBpm(bpm) {
+  bpm = Math.max(40, Math.min(200, Number(bpm)));
+  state.bpm = bpm;
+  $("bpm").value = bpm;
+  $("bpmNum").value = bpm;
+}
+
+$("bpm").addEventListener("input", (e) => setBpm(e.target.value));
+$("bpmNum").addEventListener("change", (e) => setBpm(e.target.value));
+$("mode").addEventListener("change", (e) => {
+  state.mode = e.target.value;
+  $("status").textContent = `mode=${state.mode}`;
+});
+
+$("btnMic").addEventListener("click", async () => {
+  try {
+    if (state.audioCtx) return;
+
+    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Request mic
+    state.micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      }
+    });
+
+    const src = state.audioCtx.createMediaStreamSource(state.micStream);
+
+    // Bigger window helps low notes (E2)
+    state.analyser = state.audioCtx.createAnalyser();
+    state.analyser.fftSize = 8192;
+
+    src.connect(state.analyser);
+
+    $("micStatus").textContent = "Enabled ✓ (listening)";
+    $("status").textContent = "mic ready";
+    $("btnStart").disabled = false;
+    $("btnMic").textContent = "Mic Enabled ✓";
+  } catch (e) {
+    $("micStatus").textContent = `Mic error: ${e?.message || e}`;
+    $("status").textContent = "mic error";
+    console.error(e);
+  }
+});
+
+$("btnStart").addEventListener("click", async () => {
+  if (!state.audioCtx) return;
+
+  // Ensure AudioContext is running (some browsers need a user gesture)
+  if (state.audioCtx.state === "suspended") {
+    await state.audioCtx.resume();
+  }
+
+  resetPractice();
+
+  state.practicing = true;
+
+  const useCountIn = $("countInOn").checked;
+  const countInBeats = useCountIn ? BEATS_PER_BAR : 0;
+
+  // Set start time in the future so beatNow starts negative (count-in)
+  state.startTime = state.audioCtx.currentTime + beatsToSeconds(countInBeats, state.bpm);
+
+  state.lastMetroBeat = Math.floor(currentBeat(state.audioCtx.currentTime)); // so first tick aligns
+
+  $("btnStop").disabled = false;
+  $("btnStart").disabled = true;
+  $("status").textContent = useCountIn ? "count-in…" : "running";
+
+  state.rafId = requestAnimationFrame(loop);
+});
+
+$("btnStop").addEventListener("click", () => {
+  state.practicing = false;
+  if (state.rafId) cancelAnimationFrame(state.rafId);
+
+  $("btnStop").disabled = true;
+  $("btnStart").disabled = false;
+  $("status").textContent = "stopped";
+});
+
+// Initial render
+setBpm(DEFAULT_BPM);
+renderNotes();
+$("status").textContent = "ready";
+</script>
+</body>
+</html>
