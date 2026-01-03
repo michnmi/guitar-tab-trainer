@@ -23,6 +23,7 @@
     .note .t { font-size: 12px; opacity: 0.7; margin-top: 6px;}
     .note.hit { border-color: #1a7f37; }
     .note.miss { border-color: #b42318; }
+    .note.skipped { border-color: #ff9900; opacity: 0.7; }
     .note.next { border-width: 2px; }
 
     /* Guitar fretboard styles */
@@ -78,6 +79,13 @@
       transform: scaleY(1.2);
     }
 
+    .hit-zone.skip-feedback {
+      background: #ff9900;
+      box-shadow: 0 0 20px #ff9900, 0 0 40px #ff9900;
+      width: 6px;
+      transform: scaleY(1.1);
+    }
+
     /* Full-screen feedback overlay */
     .feedback-overlay {
       position: fixed;
@@ -116,6 +124,15 @@
       transform: translate(-50%, -50%) scale(1.3);
       border-color: #ff4444;
       border-width: 3px;
+    }
+
+    .fret-note.skipped {
+      background: #ff9900;
+      box-shadow: 0 0 15px #ff9900, 0 0 30px #ff9900;
+      transform: translate(-50%, -50%) scale(1.1);
+      border-color: #ffaa33;
+      border-width: 2px;
+      opacity: 0.7;
     }
 
     .fret-note {
@@ -199,6 +216,13 @@
       </div>
 
       <div style="margin-top:14px;">
+        <label for="exercise">Exercise</label>
+        <select id="exercise">
+          <option value="">Loading exercises...</option>
+        </select>
+      </div>
+
+      <div style="margin-top:14px;">
         <label>Metronome</label>
         <div class="row" style="gap:10px;">
           <label class="mono" style="display:flex; gap:10px; align-items:center; font-size:14px; opacity:1;">
@@ -247,6 +271,7 @@
         <div id="scoreDisplay" style="display: flex; gap: 16px; font-size: 16px; font-weight: bold;">
           <div style="color: #1a7f37;">✓ <span id="successCount">0</span></div>
           <div style="color: #b42318;">✗ <span id="failCount">0</span></div>
+          <div style="color: #ff9900;">⊝ <span id="skippedCount">0</span></div>
           <div style="color: #666;">Accuracy: <span id="accuracy">0%</span></div>
         </div>
       </div>
@@ -287,18 +312,99 @@
 <script>
 /**
  * -------------------------
- * Song definition (beats)
+ * Exercise management
  * -------------------------
- * You can later load this from your Go backend as JSON.
  */
-const song = [
-  { beat: 0, midi: 40 }, // E2
-  { beat: 1, midi: 45 }, // A2
-  { beat: 2, midi: 50 }, // D3
-  { beat: 3, midi: 55 }, // G3
-  { beat: 4, midi: 59 }, // B3
-  { beat: 5, midi: 64 }, // E4
-];
+let availableExercises = [];
+let currentExercise = null;
+
+// Default fallback exercise (same as original hardcoded)
+const defaultExercise = {
+  name: "Basic Strings",
+  description: "Learn the open strings: E-A-D-G-B-E",
+  bpm: 90,
+  difficulty: "beginner",
+  notes: [
+    { beat: 0, midi: 40 }, // E2
+    { beat: 1, midi: 45 }, // A2
+    { beat: 2, midi: 50 }, // D3
+    { beat: 3, midi: 55 }, // G3
+    { beat: 4, midi: 59 }, // B3
+    { beat: 5, midi: 64 }, // E4
+  ]
+};
+
+// For backward compatibility
+const song = defaultExercise.notes;
+
+async function loadAvailableExercises() {
+  try {
+    const exerciseFiles = ['basic-strings.json', 'chromatic-scale.json', 'simple-melody.json'];
+    availableExercises = [];
+
+    for (const fileName of exerciseFiles) {
+      try {
+        const response = await fetch(`exercises/${fileName}`);
+        if (response.ok) {
+          const exercise = await response.json();
+          exercise.fileName = fileName;
+          availableExercises.push(exercise);
+        } else {
+          console.warn(`Failed to load exercise: ${fileName}`);
+        }
+      } catch (e) {
+        console.warn(`Error loading exercise ${fileName}:`, e);
+      }
+    }
+
+    // Use default exercise if no exercises were loaded
+    if (availableExercises.length === 0) {
+      availableExercises.push(defaultExercise);
+    }
+
+    populateExerciseDropdown();
+    loadExercise(availableExercises[0]);
+  } catch (e) {
+    console.error('Failed to load exercises:', e);
+    // Fallback to default exercise
+    availableExercises = [defaultExercise];
+    populateExerciseDropdown();
+    loadExercise(defaultExercise);
+  }
+}
+
+function populateExerciseDropdown() {
+  const select = $("exercise");
+  select.innerHTML = "";
+
+  for (const exercise of availableExercises) {
+    const option = document.createElement("option");
+    option.value = exercise.fileName || "default";
+    option.textContent = `${exercise.name} (${exercise.difficulty})`;
+    select.appendChild(option);
+  }
+}
+
+function loadExercise(exercise) {
+  currentExercise = exercise;
+
+  // Update the global song array for backward compatibility
+  song.length = 0;
+  song.push(...exercise.notes);
+
+  // Update BPM if specified
+  if (exercise.bpm) {
+    setBpm(exercise.bpm);
+  }
+
+  // Reset the practice session
+  if (state.practicing) {
+    $("btnStop").click();
+  }
+  resetPractice();
+
+  console.log(`Loaded exercise: ${exercise.name} (${exercise.notes.length} notes)`);
+}
 
 /**
  * -------------------------
@@ -538,12 +644,15 @@ function updateVisualNotes(beatNow) {
 
     noteData.element.style.left = currentX + "px";
 
-    // Update visual state based on hit/miss
+    // Update visual state based on hit/miss/skipped
     if (event.hit && !noteData.element.classList.contains("hit")) {
       noteData.element.classList.add("hit");
     }
     if (event.miss && !noteData.element.classList.contains("miss")) {
       noteData.element.classList.add("miss");
+    }
+    if (event.skipped && !noteData.element.classList.contains("skipped")) {
+      noteData.element.classList.add("skipped");
     }
 
     // Remove notes that have passed the hit zone
@@ -565,28 +674,31 @@ function updateVisualNotes(beatNow) {
 function updateScoreDisplay() {
   $("successCount").textContent = state.successCount;
   $("failCount").textContent = state.failCount;
+  $("skippedCount").textContent = state.skippedCount;
 
-  const total = state.successCount + state.failCount;
+  const total = state.successCount + state.failCount + state.skippedCount;
   const accuracy = total === 0 ? 0 : Math.round((state.successCount / total) * 100);
   $("accuracy").textContent = accuracy + "%";
 }
 
-function showHitZoneFeedback(isHit) {
+function showHitZoneFeedback(isHit, isSkipped = false) {
   const hitZone = $("fretboard").querySelector(".hit-zone");
 
   // Remove any existing feedback classes
-  hitZone.classList.remove("hit-feedback", "miss-feedback");
+  hitZone.classList.remove("hit-feedback", "miss-feedback", "skip-feedback");
 
   // Add appropriate feedback class
   if (isHit) {
     hitZone.classList.add("hit-feedback");
+  } else if (isSkipped) {
+    hitZone.classList.add("skip-feedback");
   } else {
     hitZone.classList.add("miss-feedback");
   }
 
   // Remove feedback after animation
   setTimeout(() => {
-    hitZone.classList.remove("hit-feedback", "miss-feedback");
+    hitZone.classList.remove("hit-feedback", "miss-feedback", "skip-feedback");
   }, 300);
 }
 
@@ -626,6 +738,7 @@ function renderNotes() {
     if (i === state.nextIdx) cls += " next";
     if (ev.hit) cls += " hit";
     if (ev.miss) cls += " miss";
+    if (ev.skipped) cls += " skipped";
 
     div.className = cls;
     div.innerHTML = `
@@ -642,25 +755,38 @@ function renderNotes() {
  * -------------------------
  */
 function getNextUnhitIndex() {
-  return state.events.findIndex(ev => !ev.hit && !ev.miss);
+  return state.events.findIndex(ev => !ev.hit && !ev.miss && !ev.skipped);
 }
 
 function judgeMisses(beatNow) {
   const win = timingWindowBeats(state.bpm);
 
-  for (const ev of state.events) {
+  for (let i = 0; i < state.events.length; i++) {
+    const ev = state.events[i];
     if (!ev.judged && beatNow > ev.beat + win) {
-      ev.miss = !ev.hit;
       ev.judged = true;
 
-      // Count timing misses in score
-      if (ev.miss && !ev.hit) {
-        state.failCount++;
-        updateScoreDisplay();
+      if (!ev.hit) {
+        // Check if any input was attempted during this note's window
+        const hadInputAttempt = state.inputAttemptedDuringWindow.has(i);
 
-        // Show miss feedback (less dramatic since it's a timing miss)
-        showHitZoneFeedback(false);
+        if (hadInputAttempt) {
+          // Wrong note was played
+          ev.miss = true;
+          state.failCount++;
+          showHitZoneFeedback(false);
+        } else {
+          // No input at all - note was skipped
+          ev.skipped = true;
+          state.skippedCount++;
+          showHitZoneFeedback(false, true); // isHit=false, isSkipped=true
+        }
+
+        updateScoreDisplay();
       }
+
+      // Clean up tracking for this event
+      state.inputAttemptedDuringWindow.delete(i);
     }
   }
 
@@ -697,6 +823,9 @@ function tryMatchPlayed(beatNow, playedFreq) {
     }
     if (idx === -1) return null;
   }
+
+  // Mark that input was attempted for this note (for skipped vs missed tracking)
+  state.inputAttemptedDuringWindow.add(idx);
 
   const ev = state.events[idx];
 
@@ -784,8 +913,11 @@ const state = {
   lastMidiRounded: null,
   lastTriggerAt: 0,
 
+  // Track input attempts for skipped vs missed detection
+  inputAttemptedDuringWindow: new Set(), // Set of event indices that had input attempts
+
   // song events:
-  events: song.map(e => ({...e, hit:false, miss:false, judged:false, visualNote:null })),
+  events: song.map(e => ({...e, hit:false, miss:false, skipped:false, judged:false, visualNote:null })),
   nextIdx: 0,
 
   // visual notes on fretboard
@@ -795,6 +927,7 @@ const state = {
   // score tracking
   successCount: 0,
   failCount: 0,
+  skippedCount: 0,
 
   ignoreUntil: 0,          // audioCtx time until which we ignore detection (ducking)
   lastRms: 0,              // optional: simple onset gating baseline
@@ -810,8 +943,11 @@ function resetPractice() {
   state.lastMidiRounded = null;
   state.lastTriggerAt = 0;
 
-  state.events = song.map(e => ({...e, hit:false, miss:false, judged:false, visualNote:null }));
+  state.events = song.map(e => ({...e, hit:false, miss:false, skipped:false, judged:false, visualNote:null }));
   state.nextIdx = 0;
+
+  // Clear input tracking
+  state.inputAttemptedDuringWindow.clear();
 
   // Clear visual notes
   clearVisualNotes();
@@ -819,6 +955,7 @@ function resetPractice() {
   // Reset score counters
   state.successCount = 0;
   state.failCount = 0;
+  state.skippedCount = 0;
   updateScoreDisplay();
 
   $("now").textContent = "—";
@@ -998,6 +1135,14 @@ $("mode").addEventListener("change", (e) => {
   $("status").textContent = `mode=${state.mode}`;
 });
 
+$("exercise").addEventListener("change", (e) => {
+  const selectedFileName = e.target.value;
+  const exercise = availableExercises.find(ex => (ex.fileName || "default") === selectedFileName);
+  if (exercise) {
+    loadExercise(exercise);
+  }
+});
+
 $("btnMic").addEventListener("click", async () => {
   try {
     if (state.audioCtx || state.micStream) {
@@ -1149,6 +1294,9 @@ setBpm(DEFAULT_BPM);
 renderNotes();
 updateScoreDisplay();
 $("status").textContent = "ready";
+
+// Load available exercises
+loadAvailableExercises();
 </script>
 </body>
 </html>
