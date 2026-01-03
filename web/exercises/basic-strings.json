@@ -1,0 +1,14 @@
+{
+  "name": "Basic Strings",
+  "description": "Learn the open strings: E-A-D-G-B-E",
+  "bpm": 90,
+  "difficulty": "beginner",
+  "notes": [
+    { "beat": 0, "midi": 40 },
+    { "beat": 1, "midi": 45 },
+    { "beat": 2, "midi": 50 },
+    { "beat": 3, "midi": 55 },
+    { "beat": 4, "midi": 59 },
+    { "beat": 5, "midi": 64 }
+  ]
+}
