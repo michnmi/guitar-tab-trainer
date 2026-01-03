@@ -197,7 +197,8 @@ function yinPitch(buffer, sampleRate) {
   const d = new Float32Array(maxTau + 1);
   for (let tau = minTau; tau <= maxTau; tau++) {
     let sum = 0;
-    for (let i = 0; i < bufferSize - tau; i++) {
+    const maxI = Math.max(0, bufferSize - tau);
+    for (let i = 0; i < maxI; i++) {
       const delta = buffer[i] - buffer[i + tau];
       sum += delta * delta;
     }
@@ -209,30 +210,30 @@ function yinPitch(buffer, sampleRate) {
   let runningSum = 0;
   for (let tau = 1; tau <= maxTau; tau++) {
     runningSum += d[tau];
-    cmndf[tau] = d[tau] * tau / (runningSum || 1);
+    cmndf[tau] = runningSum === 0 ? 1 : d[tau] * tau / runningSum;
   }
 
   let tauEstimate = -1;
   for (let tau = minTau; tau <= maxTau; tau++) {
-    if (cmndf[tau] < threshold) {
-      while (tau + 1 <= maxTau && cmndf[tau + 1] < cmndf[tau]) tau++;
+    if (tau < cmndf.length && cmndf[tau] < threshold) {
+      while (tau + 1 <= maxTau && tau + 1 < cmndf.length && cmndf[tau + 1] < cmndf[tau]) tau++;
       tauEstimate = tau;
       break;
     }
   }
-  if (tauEstimate === -1) return { freq: null, conf: 0, rms };
+  if (tauEstimate === -1 || tauEstimate >= cmndf.length) return { freq: null, conf: 0, rms };
 
   // Parabolic interpolation
   const x0 = tauEstimate > 1 ? tauEstimate - 1 : tauEstimate;
-  const x2 = tauEstimate + 1 <= maxTau ? tauEstimate + 1 : tauEstimate;
+  const x2 = tauEstimate + 1 <= maxTau && tauEstimate + 1 < cmndf.length ? tauEstimate + 1 : tauEstimate;
 
-  const s0 = cmndf[x0];
-  const s1 = cmndf[tauEstimate];
-  const s2 = cmndf[x2];
+  const s0 = x0 < cmndf.length ? cmndf[x0] : 1;
+  const s1 = tauEstimate < cmndf.length ? cmndf[tauEstimate] : 1;
+  const s2 = x2 < cmndf.length ? cmndf[x2] : 1;
 
   const a = (s0 + s2 - 2 * s1) / 2;
   const b = (s2 - s0) / 2;
-  const betterTau = (a !== 0) ? (tauEstimate - b / (2 * a)) : tauEstimate;
+  const betterTau = (Math.abs(a) > 1e-10) ? (tauEstimate - b / (2 * a)) : tauEstimate;
 
   const freq = sampleRate / betterTau;
   const conf = Math.max(0, Math.min(1, 1 - cmndf[tauEstimate]));
@@ -419,6 +420,7 @@ const state = {
 
   // metronome scheduler:
   lastMetroBeat: -1,
+  nextMetroTime: 0,
 
   // detection stability:
   stableCount: 0,
@@ -437,6 +439,7 @@ function resetPractice() {
   state.practicing = false;
   state.startTime = 0;
   state.lastMetroBeat = -1;
+  state.nextMetroTime = 0;
 
   state.stableCount = 0;
   state.lastMidiRounded = null;
@@ -481,16 +484,24 @@ function loop() {
     $("now").textContent = `beat=${beatNow.toFixed(3)} @ ${state.bpm} BPM`;
   }
 
-  // Metronome tick (including count-in if enabled)
+  // Metronome tick (including count-in if enabled) with precise timing
   if ($("metroOn").checked) {
-    const beatInt = Math.floor(beatNow);
-    if (beatInt !== state.lastMetroBeat) {
-      state.lastMetroBeat = beatInt;
+    if (now >= state.nextMetroTime && state.nextMetroTime > 0) {
+      const currentBeatInt = Math.floor(beatNow);
 
       // Determine downbeat within bars (handles negative beats too)
-      const barPos = ((beatInt % BEATS_PER_BAR) + BEATS_PER_BAR) % BEATS_PER_BAR;
+      const barPos = ((currentBeatInt % BEATS_PER_BAR) + BEATS_PER_BAR) % BEATS_PER_BAR;
       const isDownbeat = (barPos === 0);
       metroTick(isDownbeat);
+
+      // Schedule next tick precisely
+      const beatDuration = beatsToSeconds(1, state.bpm);
+      state.nextMetroTime += beatDuration;
+
+      // Prevent accumulating drift by resetting if we get too far behind
+      if (state.nextMetroTime < now - beatDuration) {
+        state.nextMetroTime = now + beatDuration;
+      }
     }
   }
 
@@ -601,7 +612,10 @@ $("mode").addEventListener("change", (e) => {
 
 $("btnMic").addEventListener("click", async () => {
   try {
-    if (state.audioCtx) return;
+    if (state.audioCtx || state.micStream) {
+      console.log("Microphone already initialized");
+      return;
+    }
 
     state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -626,10 +640,53 @@ $("btnMic").addEventListener("click", async () => {
     $("status").textContent = "mic ready";
     $("btnStart").disabled = false;
     $("btnMic").textContent = "Mic Enabled ✓";
+    $("btnMic").disabled = true;
   } catch (e) {
-    $("micStatus").textContent = `Mic error: ${e?.message || e}`;
-    $("status").textContent = "mic error";
-    console.error(e);
+    let errorMessage = "Unknown error";
+    let statusMessage = "mic error";
+
+    if (e.name === "NotAllowedError") {
+      errorMessage = "Microphone permission denied. Please allow microphone access and try again.";
+      statusMessage = "permission denied";
+    } else if (e.name === "NotFoundError") {
+      errorMessage = "No microphone found. Please connect a microphone and try again.";
+      statusMessage = "no microphone";
+    } else if (e.name === "NotReadableError") {
+      errorMessage = "Microphone in use by another application. Please close other apps and try again.";
+      statusMessage = "mic busy";
+    } else if (e.name === "OverconstrainedError") {
+      errorMessage = "Microphone doesn't support required settings. Trying with default settings...";
+      statusMessage = "retrying...";
+      // Try again with less strict constraints
+      try {
+        state.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const src = state.audioCtx.createMediaStreamSource(state.micStream);
+        state.analyser = state.audioCtx.createAnalyser();
+        state.analyser.fftSize = 8192;
+        src.connect(state.analyser);
+
+        $("micStatus").textContent = "Enabled ✓ (basic settings)";
+        $("status").textContent = "mic ready";
+        $("btnStart").disabled = false;
+        $("btnMic").textContent = "Mic Enabled ✓";
+        $("btnMic").disabled = true;
+        return;
+      } catch (retryError) {
+        errorMessage = `Microphone failed: ${retryError?.message || retryError}`;
+        statusMessage = "mic failed";
+      }
+    } else {
+      errorMessage = `Microphone error: ${e?.message || e}`;
+    }
+
+    $("micStatus").textContent = errorMessage;
+    $("status").textContent = statusMessage;
+    console.error("Microphone initialization failed:", e);
+
+    // Reset state on error
+    state.audioCtx = null;
+    state.micStream = null;
+    state.analyser = null;
   }
 });
 
@@ -651,7 +708,9 @@ $("btnStart").addEventListener("click", async () => {
   // Set start time in the future so beatNow starts negative (count-in)
   state.startTime = state.audioCtx.currentTime + beatsToSeconds(countInBeats, state.bpm);
 
-  state.lastMetroBeat = Math.floor(currentBeat(state.audioCtx.currentTime)); // so first tick aligns
+  // Schedule first metronome tick precisely
+  const beatDuration = beatsToSeconds(1, state.bpm);
+  state.nextMetroTime = state.audioCtx.currentTime + beatDuration;
 
   $("btnStop").disabled = false;
   $("btnStart").disabled = true;
@@ -662,11 +721,36 @@ $("btnStart").addEventListener("click", async () => {
 
 $("btnStop").addEventListener("click", () => {
   state.practicing = false;
-  if (state.rafId) cancelAnimationFrame(state.rafId);
 
+  // Cancel animation frame
+  if (state.rafId) {
+    cancelAnimationFrame(state.rafId);
+    state.rafId = null;
+  }
+
+  // Reset practice state
+  resetPractice();
+
+  // Clean up audio resources (but keep mic enabled for quick restart)
+  if (state.audioCtx && state.audioCtx.state !== "closed") {
+    // Don't close the AudioContext to avoid reinitialization overhead
+    // Just stop any scheduled audio
+    state.ignoreUntil = 0;
+    state.nextMetroTime = 0;
+  }
+
+  // Update UI
   $("btnStop").disabled = true;
   $("btnStart").disabled = false;
   $("status").textContent = "stopped";
+
+  // Clear detection displays
+  $("lastNote").textContent = "—";
+  $("lastNoteMeta").textContent = "—";
+  $("now").textContent = "—";
+  if ($("lastNote").classList.contains("flash")) {
+    $("lastNote").classList.remove("flash");
+  }
 });
 
 // Initial render
