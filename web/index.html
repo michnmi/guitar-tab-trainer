@@ -113,7 +113,7 @@
     .fret-note.hit {
       background: #1a7f37;
       box-shadow: 0 0 25px #1a7f37, 0 0 50px #1a7f37;
-      transform: translate(-50%, -50%) scale(1.3);
+      transform: translateY(-50%) scaleY(1.3);
       border-color: #00ff00;
       border-width: 3px;
     }
@@ -121,7 +121,7 @@
     .fret-note.miss {
       background: #b42318;
       box-shadow: 0 0 25px #b42318, 0 0 50px #b42318;
-      transform: translate(-50%, -50%) scale(1.3);
+      transform: translateY(-50%) scaleY(1.3);
       border-color: #ff4444;
       border-width: 3px;
     }
@@ -129,7 +129,7 @@
     .fret-note.skipped {
       background: #ff9900;
       box-shadow: 0 0 15px #ff9900, 0 0 30px #ff9900;
-      transform: translate(-50%, -50%) scale(1.1);
+      transform: translateY(-50%) scaleY(1.1);
       border-color: #ffaa33;
       border-width: 2px;
       opacity: 0.7;
@@ -137,9 +137,9 @@
 
     .fret-note {
       position: absolute;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
+      min-width: 32px;
+      height: 24px;
+      border-radius: 6px;
       border: 2px solid #fff;
       display: flex;
       align-items: center;
@@ -148,9 +148,10 @@
       font-weight: bold;
       color: #fff;
       background: #4a90e2;
-      transform: translate(-50%, -50%);
+      transform: translateY(-50%);
       transition: all 0.1s ease;
       z-index: 5;
+      box-sizing: border-box;
     }
 
     .fret-note.hit {
@@ -598,6 +599,22 @@ function createVisualNote(eventData, fretInfo) {
   noteElement.className = "fret-note";
   noteElement.textContent = fretInfo.fret === 0 ? "0" : fretInfo.fret.toString();
 
+  // Calculate note duration for width
+  const currentEventIndex = state.events.findIndex(e => e === eventData);
+  let noteDuration = 1.0; // Default duration in beats
+
+  if (currentEventIndex >= 0 && currentEventIndex < state.events.length - 1) {
+    const nextEvent = state.events[currentEventIndex + 1];
+    noteDuration = nextEvent.beat - eventData.beat;
+  }
+
+  // Convert duration to pixel width (scale it appropriately)
+  const baseWidth = 32; // minimum width
+  const widthPerBeat = 40; // pixels per beat
+  const noteWidth = Math.max(baseWidth, noteDuration * widthPerBeat);
+
+  noteElement.style.width = noteWidth + "px";
+
   // Start position (right side of fretboard)
   const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
   noteElement.style.left = startX + "px";
@@ -610,7 +627,9 @@ function createVisualNote(eventData, fretInfo) {
     eventData: eventData,
     fretInfo: fretInfo,
     noteId: noteId,
-    spawned: false
+    spawned: false,
+    duration: noteDuration,
+    feedbackShown: false
   };
 
   state.visualNotes.set(noteId, noteData);
@@ -640,9 +659,28 @@ function updateVisualNotes(beatNow) {
 
     // Calculate position based on remaining time
     const progress = (LOOKAHEAD_BEATS - timeToHit) / LOOKAHEAD_BEATS;
+    // Position so left edge touches hit zone when timeToHit = 0
     const currentX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE * (1 - progress);
 
     noteData.element.style.left = currentX + "px";
+
+    // Check if right edge has passed the hit zone for visual feedback
+    const noteWidth = parseFloat(noteData.element.style.width) || 32;
+    const rightEdgeX = currentX + noteWidth;
+    const hasPassedHitZone = rightEdgeX <= HIT_ZONE_X;
+
+    // Trigger visual feedback when right edge passes hit zone
+    if (hasPassedHitZone && !noteData.feedbackShown && event.judged) {
+      noteData.feedbackShown = true;
+
+      if (event.hit) {
+        showHitZoneFeedback(true);
+      } else if (event.skipped) {
+        showHitZoneFeedback(false, true);
+      } else if (event.miss) {
+        showHitZoneFeedback(false, false);
+      }
+    }
 
     // Update visual state based on hit/miss/skipped
     if (event.hit && !noteData.element.classList.contains("hit")) {
@@ -774,12 +812,10 @@ function judgeMisses(beatNow) {
           // Wrong note was played
           ev.miss = true;
           state.failCount++;
-          showHitZoneFeedback(false);
         } else {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
-          showHitZoneFeedback(false, true); // isHit=false, isSkipped=true
         }
 
         updateScoreDisplay();
@@ -1091,8 +1127,7 @@ function loop() {
       }
       updateScoreDisplay();
 
-      // Show enhanced visual feedback
-      showHitZoneFeedback(verdict.ok);
+      // Show full screen feedback (hit zone feedback now handled by visual timeline)
       showFullScreenFeedback(verdict.ok);
     } else {
       $("lastNoteMeta").textContent = `no expected note to match (try Practice mode)`;
