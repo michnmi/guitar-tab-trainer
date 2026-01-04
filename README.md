@@ -1,16 +1,16 @@
-# 🎸 Guitar Tab Trainer (Monophonic, Web-Based)
+# 🎸 Guitar Tab Trainer - Yousician-Style Web App
 
-A **web-based guitar practice app** inspired by Yousician-style exercises.  
-PROD-8: Test a guitar training app with tablatures based on youcisian  
+A **web-based guitar practice app** with a visual fretboard interface inspired by Yousician.
 
+Play along with animated guitar tablature that moves across your screen in real-time. The app listens through your microphone and provides instant feedback on your timing and pitch accuracy.
 
-Instead of reading tablature visually, you **play your guitar**, and the app listens through your microphone and checks whether you played the **correct note**, optionally **in time**.
-
-This project focuses on:
-- single-note practice (no chords yet)
-- slow practice with a metronome
-- clear audio-based feedback
-- running entirely in the browser
+**Key Features:**
+- 🎯 **Visual Timeline**: Notes move across a guitar fretboard from right to left
+- 🎵 **Timing-Based Scoring**: Hit notes exactly when they reach the green line
+- 🎸 **Multiple Exercises**: JSON-based exercise system with built-in songs
+- 📊 **Detailed Scoring**: Track hits, misses, and skipped notes with accuracy percentage
+- 🎤 **Live Audio Detection**: Real-time pitch detection with octave correction
+- 🥁 **Built-in Metronome**: Helps maintain steady rhythm during practice
 
 No plugins. No native apps. Just your browser and a microphone.
 
@@ -18,39 +18,89 @@ No plugins. No native apps. Just your browser and a microphone.
 
 ## ✨ Features
 
-- 🎤 Live microphone input (Web Audio API)
-- 🎵 Robust pitch detection (YIN algorithm)
-- 🧠 Octave correction (handles harmonics / octave errors)
-- ⏱ Practice mode – advance when the correct note is played
-- 🥁 Rhythm mode – must hit notes within a timing window
-- 🔊 Built-in metronome with optional count-in
-- 🐳 Dockerized (easy to run, no local toolchain required)
+### 🎸 **Visual Guitar Interface**
+- Large, animated fretboard with 6 strings (E-A-D-G-B-E)
+- Rectangular notes showing fret numbers that move right-to-left
+- Note width represents timing duration for better rhythm visualization
+- Hit zone with real-time visual feedback (green/red/orange)
+
+### 🎯 **Timing & Scoring System**
+- **Timing-based matching**: Hit notes when left edge reaches green line
+- **Three-category scoring**: Hits ✓, Misses ✗, Skipped ⊝
+- **Smart detection**: Distinguishes wrong notes vs. no input
+- **Real-time accuracy**: Live percentage calculation with score tracking
+
+### 🎵 **Audio Engine**
+- **YIN pitch detection**: Robust monophonic note detection
+- **Octave correction**: Handles harmonic detection errors
+- **Microphone input**: Web Audio API with noise filtering
+- **Timing precision**: Fixed metronome drift issues
+
+### 🎼 **Exercise System**
+- **JSON-based exercises**: Easy to create and modify
+- **Multiple built-in songs**: Basic strings, chromatic scales, House of the Rising Sun
+- **Difficulty levels**: Beginner to intermediate exercises
+- **BPM control**: Adaptive timing windows based on tempo
+
+### 🐳 **Technical**
+- Pure web technology (no plugins required)
+- Dockerized deployment
+- Responsive layout with focus on fretboard
+- Real-time visual feedback system
 
 ---
 
-## 🚧 Current limitations (by design)
+## 🎮 How to Play
 
-- Monophonic only (one note at a time)
-- No chord detection
-- No string/fret identification (pitch-based, not position-based)
-- Best results with **headphones** (to avoid mic feedback)
+1. **Setup**:
+   - Click "Enable Mic" and allow microphone access
+   - Put on headphones (prevents metronome feedback)
+   - Select an exercise from the dropdown
+   - Adjust BPM as needed (slower = easier)
 
-These are conscious MVP choices, not technical dead ends.
+2. **Playing**:
+   - Click "Start" to begin
+   - Watch rectangular notes move from right to left across the fretboard
+   - Play the correct fret when the left edge of each note reaches the green line
+   - Note width shows how long to sustain each note
+
+3. **Scoring**:
+   - **✓ Hit**: Correct note played at the right time
+   - **✗ Miss**: Wrong note played during timing window
+   - **⊝ Skip**: No note played when timing window expired
+
+## 🚧 Current Limitations
+
+- **Monophonic only**: One note at a time (no chords)
+- **Pitch-based detection**: Detects what you played, not which fret/string
+- **Timing-based only**: Removed practice mode - all exercises require proper timing
+- **Best with headphones**: Prevents metronome feedback into microphone
 
 ---
 
-## 🧩 How it works (high level)
+## 🧩 How it Works
 
-1. The browser captures audio via `getUserMedia`
-2. Audio is analyzed in real time using the Web Audio API
-3. Pitch is detected using the **YIN** algorithm
-4. Detected pitch is:
-   - stabilized across frames
-   - octave-corrected against the expected tab note
-5. The result is matched against the current exercise step
-6. Feedback is shown and (optionally) enforced by timing rules
+### **Visual Timeline System**
+1. Notes spawn from the rightmost edge of the fretboard
+2. They move left at constant speed based on BPM
+3. Hit timing = when left edge reaches the green line
+4. Visual feedback triggers when right edge passes the line
 
-The microphone hears **pitch**, not finger positions — so the app validates **what you played**, not *how* you played it.
+### **Audio Detection Pipeline**
+1. Browser captures audio via `getUserMedia`
+2. Web Audio API analyzes audio in real-time
+3. **YIN algorithm** detects fundamental frequency
+4. **Octave correction** handles harmonic detection errors
+5. Pitch is stabilized across multiple frames
+6. **Timing window matching** finds notes within beat tolerance
+
+### **Scoring Logic**
+1. **Input tracking**: System monitors if any guitar input detected during note windows
+2. **Three-way classification**:
+   - Hit = correct pitch + timing
+   - Miss = wrong pitch detected
+   - Skip = no input detected
+3. **Real-time feedback**: Visual effects trigger immediately
 
 ---
 
@@ -77,35 +127,51 @@ docker run --rm -p 8080:8080 guitar-tab-trainer
 
 [http://localhost:8080](http://localhost:8080)
 
-## How to use
+---
 
-1. Click Enable Mic and allow microphone access
-2. (Strongly recommended) Use headphones
-3. Choose a mode:
-   - Practice mode → advance when the correct note is played
-   - Rhythm mode → must hit within a timing window
-4. Set BPM (slower is better for practice)
-5. Click Start
-6. Play single notes cleanly (open strings work well)
+## 🎼 Exercise System
 
-## Tips for best results
+### **Built-in Exercises**
+- **Basic Strings**: Learn open string names (E-A-D-G-B-E)
+- **Chromatic Scale**: Half-step progression practice
+- **Simple Melody**: Frets 0-3 melodic patterns
+- **House of the Rising Sun**: Classic fingerpicking exercise
 
-- Use headphones (prevents metronome feedback into the mic)
-- Pluck one string at a time
-- Let the note ring briefly
-- Start with open A or D strings (easier to detect than low E)
-- Avoid background talking near the microphone
+### **Creating Custom Exercises**
+Create JSON files in `/web/exercises/` directory:
 
-## About AI assistance
+```json
+{
+  "name": "My Exercise",
+  "description": "Custom practice routine",
+  "bpm": 100,
+  "difficulty": "beginner",
+  "notes": [
+    { "beat": 0, "midi": 40 },
+    { "beat": 1, "midi": 45 }
+  ]
+}
+```
 
-This project was created with the help of Large Language Models (LLMs).
-In particular:
+**String + Fret Notation**:
+- Use format: `StringName + FretNumber`
+- Examples: `E0` (open low E), `A2` (A string 2nd fret), `e0` (open high E)
 
-- ChatGPT was used as a development assistant
-- to reason about audio DSP concepts
-- to prototype pitch detection logic
-- to design the overall architecture
-- and to iteratively debug and refine the system
-- All final design decisions, implementation, integration, and validation were performed by the human developer.
+## 🎯 Practice Tips
 
-![Guitar Tab Trainer screenshot](screenshots/app.png)
+- **Use headphones**: Prevents metronome feedback into microphone
+- **Start slow**: Lower BPM until you can hit notes consistently
+- **Clean picking**: Pluck one string at a time, let notes ring
+- **Open strings first**: A and D strings are easier to detect than low E
+- **Quiet environment**: Avoid background noise near microphone
+- **Watch the rectangles**: Width shows note duration, practice sustaining
+
+---
+
+## 🤖 AI Development Assistant
+
+This project was developed with significant assistance from **Claude (Anthropic)** via Claude Code.
+
+---
+
+*Guitar Tab Trainer - Learn guitar with visual timing and real-time feedback* 🎸

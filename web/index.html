@@ -207,13 +207,6 @@
             <option value="">Loading exercises...</option>
           </select>
         </div>
-        <div style="margin-bottom:10px;">
-          <label for="mode">Mode</label>
-          <select id="mode">
-            <option value="practice" selected>Practice (advance on correct note)</option>
-            <option value="rhythm">Rhythm (must hit within window)</option>
-          </select>
-        </div>
       </div>
 
       <!-- Tempo Controls -->
@@ -838,34 +831,25 @@ function judgeMisses(beatNow) {
 }
 
 /**
- * Returns a verdict object for UI:
- * - practice mode: always compares against NEXT note
- * - rhythm mode: compares against nearest note within timing window
+ * Returns a verdict object for UI based on timing window matching
  */
 function tryMatchPlayed(beatNow, playedFreq) {
-  const mode = state.mode; // "practice" | "rhythm"
-
+  // Find nearest unhit note within timing window
+  const win = timingWindowBeats(state.bpm);
+  let bestDb = Infinity;
   let idx = -1;
 
-  if (mode === "practice") {
-    idx = getNextUnhitIndex();
-    if (idx === -1) return null;
-  } else {
-    // rhythm mode: find nearest unhit note within window
-    const win = timingWindowBeats(state.bpm);
-    let bestDb = Infinity;
-
-    for (let i = 0; i < state.events.length; i++) {
-      const ev = state.events[i];
-      if (ev.hit) continue; // allow retries until missed
-      const db = Math.abs(beatNow - ev.beat);
-      if (db <= win && db < bestDb) {
-        bestDb = db;
-        idx = i;
-      }
+  for (let i = 0; i < state.events.length; i++) {
+    const ev = state.events[i];
+    if (ev.hit) continue; // allow retries until missed
+    const db = Math.abs(beatNow - ev.beat);
+    if (db <= win && db < bestDb) {
+      bestDb = db;
+      idx = i;
     }
-    if (idx === -1) return null;
   }
+
+  if (idx === -1) return null;
 
   // Mark that input was attempted for this note (for skipped vs missed tracking)
   state.inputAttemptedDuringWindow.add(idx);
@@ -875,7 +859,6 @@ function tryMatchPlayed(beatNow, playedFreq) {
   const { correctedMidi, centsOff } = octaveCorrect(playedFreq, ev.midi);
   const ok = Math.abs(centsOff) <= CENTS_TOLERANCE;
 
-  // timing info (informational in practice mode)
   const timingBeats = beatNow - ev.beat;
 
   if (ok) {
@@ -889,8 +872,7 @@ function tryMatchPlayed(beatNow, playedFreq) {
     detected: correctedMidi,
     centsOff,
     timingBeats,
-    expectedBeat: ev.beat,
-    mode
+    expectedBeat: ev.beat
   };
 }
 
@@ -941,7 +923,6 @@ const state = {
   practicing: false,
 
   bpm: DEFAULT_BPM,
-  mode: "practice",
 
   // time model:
   // beatNow = secondsToBeats(audioCtx.currentTime - startTime, bpm)
@@ -1119,7 +1100,7 @@ function loop() {
       const expectedName = midiToName(verdict.expected);
 
       $("lastNoteMeta").textContent =
-        `mode=${verdict.mode} expected=${expectedName} detected≈${detectedName} ` +
+        `expected=${expectedName} detected≈${detectedName} ` +
         `cents=${verdict.centsOff.toFixed(1)} ` +
         `Δbeat=${verdict.timingBeats.toFixed(2)} (win≈${timingWindowBeats(state.bpm).toFixed(2)})`;
 
@@ -1137,7 +1118,7 @@ function loop() {
       // Show full screen feedback (hit zone feedback now handled by visual timeline)
       showFullScreenFeedback(verdict.ok);
     } else {
-      $("lastNoteMeta").textContent = `no expected note to match (try Practice mode)`;
+      $("lastNoteMeta").textContent = `no note within timing window`;
       $("lastNote").style.outlineColor = "#999";
       $("status").textContent = "no match";
     }
@@ -1148,11 +1129,9 @@ function loop() {
     judgeMisses(beatNow);
     renderNotes();
   } else {
-    // still update misses over time in rhythm mode
-    if (state.mode === "rhythm") {
-      judgeMisses(beatNow);
-      renderNotes();
-    }
+    // still update misses over time
+    judgeMisses(beatNow);
+    renderNotes();
   }
 
   state.rafId = requestAnimationFrame(loop);
@@ -1172,10 +1151,6 @@ function setBpm(bpm) {
 
 $("bpm").addEventListener("input", (e) => setBpm(e.target.value));
 $("bpmNum").addEventListener("change", (e) => setBpm(e.target.value));
-$("mode").addEventListener("change", (e) => {
-  state.mode = e.target.value;
-  $("status").textContent = `mode=${state.mode}`;
-});
 
 $("exercise").addEventListener("change", (e) => {
   const selectedFileName = e.target.value;
