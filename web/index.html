@@ -137,47 +137,86 @@
 
     .fret-note {
       position: absolute;
-      min-width: 64px;
-      height: 48px;
-      border-radius: 12px;
-      border: 4px solid #fff;
+      min-width: 80px;
+      height: 56px;
+      border-radius: 16px;
+      border: 5px solid #000;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 32px;
       font-weight: 900;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      color: #fff;
-      background: #4a90e2;
+      color: #000;
+      background: linear-gradient(145deg, #ffffff, #f0f0f0);
       transform: translateY(-50%);
-      transition: all 0.1s ease;
+      transition: none;
       z-index: 5;
       box-sizing: border-box;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      text-shadow:
+        1px 1px 2px rgba(255,255,255,0.9),
+        -1px -1px 2px rgba(255,255,255,0.9),
+        2px 2px 4px rgba(0,0,0,0.3);
+      box-shadow:
+        0 0 0 2px #333,
+        0 6px 20px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.8);
       will-change: transform;
-      /* Better text rendering during animation */
+      /* Anti-motion-blur techniques */
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-      /* Prevent blur during animation */
+      text-rendering: geometricPrecision;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      transform-style: preserve-3d;
+      /* Force hardware acceleration for smoother movement */
+      -webkit-transform: translateZ(0) translateY(-50%);
+      transform: translateZ(0) translateY(-50%);
+      /* Prevent subpixel rendering issues and ensure crisp text */
+      -webkit-transform: translate3d(0, -50%, 0);
+      transform: translate3d(0, -50%, 0);
+      /* Snap to pixel boundaries for crisp rendering */
+      image-rendering: crisp-edges;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-optimize-contrast;
+      /* Ensure text stays sharp during animation */
+      -webkit-font-feature-settings: "liga" 0;
+      font-feature-settings: "liga" 0;
     }
 
     .fret-note.open-string {
-      background: #6a5acd;
-      border-color: #9370db;
+      background: linear-gradient(145deg, #9370db, #6a5acd);
+      color: #fff;
+      border-color: #4b0082;
+      text-shadow:
+        1px 1px 2px rgba(0,0,0,0.8),
+        -1px -1px 2px rgba(0,0,0,0.5);
     }
 
     .fret-note.hit {
-      background: #1a7f37;
-      box-shadow: 0 0 15px #1a7f37;
+      background: linear-gradient(145deg, #22c55e, #16a34a);
+      color: #fff;
+      border-color: #15803d;
+      box-shadow:
+        0 0 0 2px #15803d,
+        0 0 25px #22c55e,
+        0 6px 20px rgba(0,0,0,0.4);
+      text-shadow:
+        1px 1px 2px rgba(0,0,0,0.8),
+        -1px -1px 2px rgba(0,0,0,0.5);
     }
 
     .fret-note.miss {
-      background: #b42318;
-      box-shadow: 0 0 15px #b42318;
+      background: linear-gradient(145deg, #ef4444, #dc2626);
+      color: #fff;
+      border-color: #b91c1c;
+      box-shadow:
+        0 0 0 2px #b91c1c,
+        0 0 25px #ef4444,
+        0 6px 20px rgba(0,0,0,0.4);
+      text-shadow:
+        1px 1px 2px rgba(0,0,0,0.8),
+        -1px -1px 2px rgba(0,0,0,0.5);
     }
 
     .string-label {
@@ -643,16 +682,17 @@ function createVisualNote(eventData, fretInfo) {
   }
 
   // Convert duration to pixel width (scale it appropriately)
-  const baseWidth = 64; // minimum width (matches min-width in CSS)
-  const widthPerBeat = 80; // pixels per beat (increased for larger, more readable notes)
+  const baseWidth = 80; // minimum width (matches min-width in CSS)
+  const widthPerBeat = 100; // pixels per beat (increased for larger, more readable notes)
   const noteWidth = Math.max(baseWidth, noteDuration * widthPerBeat);
 
   noteElement.style.width = noteWidth + "px";
 
-  // Start position (rightmost edge of fretboard)
+  // Start position (rightmost edge of fretboard) - using transform for better performance
   const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
-  noteElement.style.left = startX + "px";
+  noteElement.style.left = "0px"; // Keep at origin for transform calculations
   noteElement.style.top = fretInfo.y + "px";
+  noteElement.style.transform = `translate3d(${startX}px, -50%, 0)`;
 
   fretboard.appendChild(noteElement);
 
@@ -696,10 +736,11 @@ function updateVisualNotes(beatNow) {
     // Position so left edge touches hit zone when timeToHit = 0
     const currentX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE * (1 - progress);
 
-    noteData.element.style.left = currentX + "px";
+    // Use transform for smoother animation and less motion blur
+    noteData.element.style.transform = `translate3d(${currentX}px, -50%, 0)`;
 
     // Check if right edge has passed the hit zone for visual feedback
-    const noteWidth = parseFloat(noteData.element.style.width) || 48;
+    const noteWidth = parseFloat(noteData.element.style.width) || 80;
     const rightEdgeX = currentX + noteWidth;
     const hasPassedHitZone = rightEdgeX <= HIT_ZONE_X;
 
