@@ -137,31 +137,86 @@
 
     .fret-note {
       position: absolute;
-      min-width: 48px;
-      height: 36px;
-      border-radius: 8px;
-      border: 3px solid #fff;
+      min-width: 80px;
+      height: 56px;
+      border-radius: 16px;
+      border: 5px solid #000;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      font-weight: bold;
-      color: #fff;
-      background: #4a90e2;
+      font-size: 32px;
+      font-weight: 900;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #000;
+      background: linear-gradient(145deg, #ffffff, #f0f0f0);
       transform: translateY(-50%);
-      transition: all 0.1s ease;
+      transition: none;
       z-index: 5;
       box-sizing: border-box;
+      text-shadow:
+        1px 1px 2px rgba(255,255,255,0.9),
+        -1px -1px 2px rgba(255,255,255,0.9),
+        2px 2px 4px rgba(0,0,0,0.3);
+      box-shadow:
+        0 0 0 2px #333,
+        0 6px 20px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.8);
+      will-change: transform;
+      /* Anti-motion-blur techniques */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform-style: preserve-3d;
+      /* Force hardware acceleration for smoother movement */
+      -webkit-transform: translateZ(0) translateY(-50%);
+      transform: translateZ(0) translateY(-50%);
+      /* Prevent subpixel rendering issues and ensure crisp text */
+      -webkit-transform: translate3d(0, -50%, 0);
+      transform: translate3d(0, -50%, 0);
+      /* Snap to pixel boundaries for crisp rendering */
+      image-rendering: crisp-edges;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-optimize-contrast;
+      /* Ensure text stays sharp during animation */
+      -webkit-font-feature-settings: "liga" 0;
+      font-feature-settings: "liga" 0;
+    }
+
+    .fret-note.open-string {
+      background: linear-gradient(145deg, #9370db, #6a5acd);
+      color: #fff;
+      border-color: #4b0082;
+      text-shadow:
+        1px 1px 2px rgba(0,0,0,0.8),
+        -1px -1px 2px rgba(0,0,0,0.5);
     }
 
     .fret-note.hit {
-      background: #1a7f37;
-      box-shadow: 0 0 15px #1a7f37;
+      background: linear-gradient(145deg, #22c55e, #16a34a);
+      color: #fff;
+      border-color: #15803d;
+      box-shadow:
+        0 0 0 2px #15803d,
+        0 0 25px #22c55e,
+        0 6px 20px rgba(0,0,0,0.4);
+      text-shadow:
+        1px 1px 2px rgba(0,0,0,0.8),
+        -1px -1px 2px rgba(0,0,0,0.5);
     }
 
     .fret-note.miss {
-      background: #b42318;
-      box-shadow: 0 0 15px #b42318;
+      background: linear-gradient(145deg, #ef4444, #dc2626);
+      color: #fff;
+      border-color: #b91c1c;
+      box-shadow:
+        0 0 0 2px #b91c1c,
+        0 0 25px #ef4444,
+        0 6px 20px rgba(0,0,0,0.4);
+      text-shadow:
+        1px 1px 2px rgba(0,0,0,0.8),
+        -1px -1px 2px rgba(0,0,0,0.5);
     }
 
     .string-label {
@@ -608,7 +663,14 @@ function createVisualNote(eventData, fretInfo) {
 
   const noteElement = document.createElement("div");
   noteElement.className = "fret-note";
-  noteElement.textContent = fretInfo.fret === 0 ? "0" : fretInfo.fret.toString();
+  // Make open strings (fret 0) more distinguishable
+  if (fretInfo.fret === 0) {
+    noteElement.textContent = "O"; // Use "O" instead of "0" for open strings
+    noteElement.style.fontSize = "20px"; // Slightly smaller for the "O"
+    noteElement.classList.add("open-string");
+  } else {
+    noteElement.textContent = fretInfo.fret.toString();
+  }
 
   // Calculate note duration for width
   const currentEventIndex = state.events.findIndex(e => e === eventData);
@@ -620,16 +682,17 @@ function createVisualNote(eventData, fretInfo) {
   }
 
   // Convert duration to pixel width (scale it appropriately)
-  const baseWidth = 48; // minimum width (matches min-width in CSS)
-  const widthPerBeat = 60; // pixels per beat (increased for larger fretboard)
+  const baseWidth = 80; // minimum width (matches min-width in CSS)
+  const widthPerBeat = 100; // pixels per beat (increased for larger, more readable notes)
   const noteWidth = Math.max(baseWidth, noteDuration * widthPerBeat);
 
   noteElement.style.width = noteWidth + "px";
 
-  // Start position (rightmost edge of fretboard)
+  // Start position (rightmost edge of fretboard) - using transform for better performance
   const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
-  noteElement.style.left = startX + "px";
+  noteElement.style.left = "0px"; // Keep at origin for transform calculations
   noteElement.style.top = fretInfo.y + "px";
+  noteElement.style.transform = `translate3d(${startX}px, -50%, 0)`;
 
   fretboard.appendChild(noteElement);
 
@@ -673,10 +736,11 @@ function updateVisualNotes(beatNow) {
     // Position so left edge touches hit zone when timeToHit = 0
     const currentX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE * (1 - progress);
 
-    noteData.element.style.left = currentX + "px";
+    // Use transform for smoother animation and less motion blur
+    noteData.element.style.transform = `translate3d(${currentX}px, -50%, 0)`;
 
     // Check if right edge has passed the hit zone for visual feedback
-    const noteWidth = parseFloat(noteData.element.style.width) || 48;
+    const noteWidth = parseFloat(noteData.element.style.width) || 80;
     const rightEdgeX = currentX + noteWidth;
     const hasPassedHitZone = rightEdgeX <= HIT_ZONE_X;
 
@@ -1029,11 +1093,13 @@ function loop() {
   const now = state.audioCtx.currentTime;
   const beatNow = currentBeat(now);
 
-  // Ignore detection briefly after metronome tick (prevents self-triggering)
-  if (now < state.ignoreUntil) {
-    state.rafId = requestAnimationFrame(loop);
-    return;
-  }
+  // Always update visual elements first (prevents animation stuttering)
+  // Update visual notes animation
+  updateVisualNotes(beatNow);
+
+  // Skip audio processing briefly after metronome tick (prevents self-triggering)
+  // but continue with visual updates
+  const skipAudioProcessing = now < state.ignoreUntil;
 
   // Count-in handling (beatNow < 0 means we're counting in)
   if (beatNow < 0) {
@@ -1063,24 +1129,29 @@ function loop() {
     }
   }
 
-  // Read mic samples
-  const buf = new Float32Array(state.analyser.fftSize);
-  state.analyser.getFloatTimeDomainData(buf);
+  // Audio processing (skip during metronome ducking period)
+  let freq = null, conf = 0, rms = 0, onset = false;
+  if (!skipAudioProcessing) {
+    // Read mic samples
+    const buf = new Float32Array(state.analyser.fftSize);
+    state.analyser.getFloatTimeDomainData(buf);
 
-  const { freq, conf, rms } = yinPitch(buf, state.audioCtx.sampleRate);
-  
-  // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
-  const onset = rms > Math.max(0.01, state.lastRms * 1.8);
-  state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
-  
+    const pitchResult = yinPitch(buf, state.audioCtx.sampleRate);
+    freq = pitchResult.freq;
+    conf = pitchResult.conf;
+    rms = pitchResult.rms;
+
+    // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
+    onset = rms > Math.max(0.01, state.lastRms * 1.8);
+    state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
+  }
 
   // UI: input level / debug
   $("level").value = Math.min(1, rms * 20);
   $("levelText").textContent =
     `rms=${rms.toFixed(4)} conf=${conf.toFixed(2)} freq=${freq ? freq.toFixed(1) : "—"}`;
 
-  // Update visual notes animation
-  updateVisualNotes(beatNow);
+  // Visual notes already updated above (to prevent stuttering)
 
   // If we're still in count-in, do not judge notes (but still show detected pitch)
   if (beatNow < 0) {
@@ -1088,72 +1159,72 @@ function loop() {
     return;
   }
 
-  // Pitch → MIDI
+  // Pitch processing and note matching (skip during metronome ducking)
   let midiFloat = null;
   let midiRounded = null;
 
-  if (freq) {
+  if (!skipAudioProcessing && freq) {
     midiFloat = freqToMidi(freq);
     midiRounded = Math.round(midiFloat);
-  }
 
-  // Stability gate
-  if (midiRounded !== null) {
-    if (state.lastMidiRounded === midiRounded) state.stableCount++;
-    else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
-  } else {
-    state.lastMidiRounded = null;
-    state.stableCount = 0;
-  }
-
-  // Trigger gate
-  const canTrigger = (now - state.lastTriggerAt) > COOLDOWN_SEC;
-
-  if (freq && conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger) {
-    state.lastTriggerAt = now;
-
-    // Match against tab
-    const verdict = tryMatchPlayed(beatNow, freq);
-
-    // UI: show detected note
-    $("lastNote").textContent = midiToName(midiRounded);
-    $("lastNote").classList.add("flash");
-
-    if (verdict) {
-      const detectedName = midiToName(Math.round(verdict.detected));
-      const expectedName = midiToName(verdict.expected);
-
-      $("lastNoteMeta").textContent =
-        `expected=${expectedName} detected≈${detectedName} ` +
-        `cents=${verdict.centsOff.toFixed(1)} ` +
-        `Δbeat=${verdict.timingBeats.toFixed(2)} (win≈${timingWindowBeats(state.bpm).toFixed(2)})`;
-
-      $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
-      $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
-
-      // Update score counters
-      if (verdict.ok) {
-        state.successCount++;
-      } else {
-        state.failCount++;
-      }
-      updateScoreDisplay();
-
-      // Show full screen feedback (hit zone feedback now handled by visual timeline)
-      showFullScreenFeedback(verdict.ok);
+    // Stability gate
+    if (midiRounded !== null) {
+      if (state.lastMidiRounded === midiRounded) state.stableCount++;
+      else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
     } else {
-      $("lastNoteMeta").textContent = `no note within timing window`;
-      $("lastNote").style.outlineColor = "#999";
-      $("status").textContent = "no match";
+      state.lastMidiRounded = null;
+      state.stableCount = 0;
     }
 
-    setTimeout(() => $("lastNote").classList.remove("flash"), 200);
+    // Trigger gate
+    const canTrigger = (now - state.lastTriggerAt) > COOLDOWN_SEC;
+
+    if (conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger) {
+      state.lastTriggerAt = now;
+
+      // Match against tab
+      const verdict = tryMatchPlayed(beatNow, freq);
+
+      // UI: show detected note
+      $("lastNote").textContent = midiToName(midiRounded);
+      $("lastNote").classList.add("flash");
+
+      if (verdict) {
+        const detectedName = midiToName(Math.round(verdict.detected));
+        const expectedName = midiToName(verdict.expected);
+
+        $("lastNoteMeta").textContent =
+          `expected=${expectedName} detected≈${detectedName} ` +
+          `cents=${verdict.centsOff.toFixed(1)} ` +
+          `Δbeat=${verdict.timingBeats.toFixed(2)} (win≈${timingWindowBeats(state.bpm).toFixed(2)})`;
+
+        $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
+        $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
+
+        // Update score counters
+        if (verdict.ok) {
+          state.successCount++;
+        } else {
+          state.failCount++;
+        }
+        updateScoreDisplay();
+
+        // Show full screen feedback (hit zone feedback now handled by visual timeline)
+        showFullScreenFeedback(verdict.ok);
+      } else {
+        $("lastNoteMeta").textContent = `no note within timing window`;
+        $("lastNote").style.outlineColor = "#999";
+        $("status").textContent = "no match";
+      }
+
+      setTimeout(() => $("lastNote").classList.remove("flash"), 200);
+    }
 
     // Update progression
     judgeMisses(beatNow);
     renderNotes();
   } else {
-    // still update misses over time
+    // Audio processing skipped during metronome ducking, but still update misses
     judgeMisses(beatNow);
     renderNotes();
   }
