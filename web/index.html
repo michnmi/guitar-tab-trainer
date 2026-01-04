@@ -1052,11 +1052,13 @@ function loop() {
   const now = state.audioCtx.currentTime;
   const beatNow = currentBeat(now);
 
-  // Ignore detection briefly after metronome tick (prevents self-triggering)
-  if (now < state.ignoreUntil) {
-    state.rafId = requestAnimationFrame(loop);
-    return;
-  }
+  // Always update visual elements first (prevents animation stuttering)
+  // Update visual notes animation
+  updateVisualNotes(beatNow);
+
+  // Skip audio processing briefly after metronome tick (prevents self-triggering)
+  // but continue with visual updates
+  const skipAudioProcessing = now < state.ignoreUntil;
 
   // Count-in handling (beatNow < 0 means we're counting in)
   if (beatNow < 0) {
@@ -1086,24 +1088,29 @@ function loop() {
     }
   }
 
-  // Read mic samples
-  const buf = new Float32Array(state.analyser.fftSize);
-  state.analyser.getFloatTimeDomainData(buf);
+  // Audio processing (skip during metronome ducking period)
+  let freq = null, conf = 0, rms = 0, onset = false;
+  if (!skipAudioProcessing) {
+    // Read mic samples
+    const buf = new Float32Array(state.analyser.fftSize);
+    state.analyser.getFloatTimeDomainData(buf);
 
-  const { freq, conf, rms } = yinPitch(buf, state.audioCtx.sampleRate);
-  
-  // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
-  const onset = rms > Math.max(0.01, state.lastRms * 1.8);
-  state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
-  
+    const pitchResult = yinPitch(buf, state.audioCtx.sampleRate);
+    freq = pitchResult.freq;
+    conf = pitchResult.conf;
+    rms = pitchResult.rms;
+
+    // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
+    onset = rms > Math.max(0.01, state.lastRms * 1.8);
+    state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
+  }
 
   // UI: input level / debug
   $("level").value = Math.min(1, rms * 20);
   $("levelText").textContent =
     `rms=${rms.toFixed(4)} conf=${conf.toFixed(2)} freq=${freq ? freq.toFixed(1) : "—"}`;
 
-  // Update visual notes animation
-  updateVisualNotes(beatNow);
+  // Visual notes already updated above (to prevent stuttering)
 
   // If we're still in count-in, do not judge notes (but still show detected pitch)
   if (beatNow < 0) {
@@ -1111,72 +1118,72 @@ function loop() {
     return;
   }
 
-  // Pitch → MIDI
+  // Pitch processing and note matching (skip during metronome ducking)
   let midiFloat = null;
   let midiRounded = null;
 
-  if (freq) {
+  if (!skipAudioProcessing && freq) {
     midiFloat = freqToMidi(freq);
     midiRounded = Math.round(midiFloat);
-  }
 
-  // Stability gate
-  if (midiRounded !== null) {
-    if (state.lastMidiRounded === midiRounded) state.stableCount++;
-    else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
-  } else {
-    state.lastMidiRounded = null;
-    state.stableCount = 0;
-  }
-
-  // Trigger gate
-  const canTrigger = (now - state.lastTriggerAt) > COOLDOWN_SEC;
-
-  if (freq && conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger) {
-    state.lastTriggerAt = now;
-
-    // Match against tab
-    const verdict = tryMatchPlayed(beatNow, freq);
-
-    // UI: show detected note
-    $("lastNote").textContent = midiToName(midiRounded);
-    $("lastNote").classList.add("flash");
-
-    if (verdict) {
-      const detectedName = midiToName(Math.round(verdict.detected));
-      const expectedName = midiToName(verdict.expected);
-
-      $("lastNoteMeta").textContent =
-        `expected=${expectedName} detected≈${detectedName} ` +
-        `cents=${verdict.centsOff.toFixed(1)} ` +
-        `Δbeat=${verdict.timingBeats.toFixed(2)} (win≈${timingWindowBeats(state.bpm).toFixed(2)})`;
-
-      $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
-      $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
-
-      // Update score counters
-      if (verdict.ok) {
-        state.successCount++;
-      } else {
-        state.failCount++;
-      }
-      updateScoreDisplay();
-
-      // Show full screen feedback (hit zone feedback now handled by visual timeline)
-      showFullScreenFeedback(verdict.ok);
+    // Stability gate
+    if (midiRounded !== null) {
+      if (state.lastMidiRounded === midiRounded) state.stableCount++;
+      else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
     } else {
-      $("lastNoteMeta").textContent = `no note within timing window`;
-      $("lastNote").style.outlineColor = "#999";
-      $("status").textContent = "no match";
+      state.lastMidiRounded = null;
+      state.stableCount = 0;
     }
 
-    setTimeout(() => $("lastNote").classList.remove("flash"), 200);
+    // Trigger gate
+    const canTrigger = (now - state.lastTriggerAt) > COOLDOWN_SEC;
+
+    if (conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger) {
+      state.lastTriggerAt = now;
+
+      // Match against tab
+      const verdict = tryMatchPlayed(beatNow, freq);
+
+      // UI: show detected note
+      $("lastNote").textContent = midiToName(midiRounded);
+      $("lastNote").classList.add("flash");
+
+      if (verdict) {
+        const detectedName = midiToName(Math.round(verdict.detected));
+        const expectedName = midiToName(verdict.expected);
+
+        $("lastNoteMeta").textContent =
+          `expected=${expectedName} detected≈${detectedName} ` +
+          `cents=${verdict.centsOff.toFixed(1)} ` +
+          `Δbeat=${verdict.timingBeats.toFixed(2)} (win≈${timingWindowBeats(state.bpm).toFixed(2)})`;
+
+        $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
+        $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
+
+        // Update score counters
+        if (verdict.ok) {
+          state.successCount++;
+        } else {
+          state.failCount++;
+        }
+        updateScoreDisplay();
+
+        // Show full screen feedback (hit zone feedback now handled by visual timeline)
+        showFullScreenFeedback(verdict.ok);
+      } else {
+        $("lastNoteMeta").textContent = `no note within timing window`;
+        $("lastNote").style.outlineColor = "#999";
+        $("status").textContent = "no match";
+      }
+
+      setTimeout(() => $("lastNote").classList.remove("flash"), 200);
+    }
 
     // Update progression
     judgeMisses(beatNow);
     renderNotes();
   } else {
-    // still update misses over time
+    // Audio processing skipped during metronome ducking, but still update misses
     judgeMisses(beatNow);
     renderNotes();
   }
