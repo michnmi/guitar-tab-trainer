@@ -30,7 +30,7 @@
     .fretboard {
       position: relative;
       width: 100%;
-      height: 280px;
+      height: 420px;
       background: linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%);
       border-radius: 8px;
       overflow: hidden;
@@ -46,12 +46,12 @@
       border-radius: 1px;
     }
 
-    .string.e-high { top: 30px; }
-    .string.b { top: 70px; }
-    .string.g { top: 110px; }
-    .string.d { top: 150px; }
-    .string.a { top: 190px; }
-    .string.e-low { top: 230px; }
+    .string.e-high { top: 45px; }
+    .string.b { top: 105px; }
+    .string.g { top: 165px; }
+    .string.d { top: 225px; }
+    .string.a { top: 285px; }
+    .string.e-low { top: 345px; }
 
     .hit-zone {
       position: absolute;
@@ -137,14 +137,14 @@
 
     .fret-note {
       position: absolute;
-      min-width: 32px;
-      height: 24px;
-      border-radius: 6px;
-      border: 2px solid #fff;
+      min-width: 48px;
+      height: 36px;
+      border-radius: 8px;
+      border: 3px solid #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 16px;
       font-weight: bold;
       color: #fff;
       background: #4a90e2;
@@ -189,48 +189,45 @@
 <body>
   <h1>Tab Trainer (Single Notes)</h1>
 
-  <div class="row">
-    <button id="btnMic">Enable Mic</button>
-    <button id="btnStart" disabled>Start</button>
-    <button id="btnStop" disabled>Stop</button>
-    <div class="mono" id="status" style="opacity:0.8;">—</div>
-  </div>
+  <!-- Technical Controls at Top -->
+  <div class="panel" style="margin-bottom: 20px;">
+    <div class="row">
+      <button id="btnMic">Enable Mic</button>
+      <button id="btnStart" disabled>Start</button>
+      <button id="btnStop" disabled>Stop</button>
+      <div class="mono" id="status" style="opacity:0.8;">—</div>
+    </div>
 
-  <div class="row" style="margin-top:16px;">
-    <div class="panel" style="min-width:360px;">
-      <div class="big">Tempo</div>
+    <div class="row" style="margin-top:16px; gap:32px; flex-wrap:wrap;">
+      <!-- Exercise Controls -->
+      <div style="min-width:200px;">
+        <div style="margin-bottom:10px;">
+          <label for="exercise">Exercise</label>
+          <select id="exercise">
+            <option value="">Loading exercises...</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label for="mode">Mode</label>
+          <select id="mode">
+            <option value="practice" selected>Practice (advance on correct note)</option>
+            <option value="rhythm">Rhythm (must hit within window)</option>
+          </select>
+        </div>
+      </div>
 
-      <div style="margin-top:10px;">
+      <!-- Tempo Controls -->
+      <div style="min-width:220px;">
         <label for="bpm">BPM</label>
         <div class="row" style="gap:10px;">
           <input id="bpm" type="range" min="40" max="200" value="90" />
           <input id="bpmNum" type="number" min="40" max="200" value="90" style="width:90px;" />
         </div>
-      </div>
-
-      <div style="margin-top:14px;">
-        <label for="mode">Mode</label>
-        <select id="mode">
-          <option value="practice" selected>Practice (advance on correct note)</option>
-          <option value="rhythm">Rhythm (must hit within window)</option>
-        </select>
-      </div>
-
-      <div style="margin-top:14px;">
-        <label for="exercise">Exercise</label>
-        <select id="exercise">
-          <option value="">Loading exercises...</option>
-        </select>
-      </div>
-
-      <div style="margin-top:14px;">
-        <label>Metronome</label>
-        <div class="row" style="gap:10px;">
+        <div style="margin-top:10px;">
           <label class="mono" style="display:flex; gap:10px; align-items:center; font-size:14px; opacity:1;">
             <input id="metroOn" type="checkbox" checked />
-            On
+            Metronome
           </label>
-
           <label class="mono" style="display:flex; gap:10px; align-items:center; font-size:14px; opacity:1;">
             <input id="countInOn" type="checkbox" checked />
             4-beat count-in
@@ -238,74 +235,76 @@
         </div>
       </div>
 
-      <div style="margin-top:16px;">
-        <div class="big">Mic</div>
-        <div id="micStatus" class="mono" style="margin-top:6px;">Not enabled</div>
-
-        <div style="margin-top:12px;">
-          <label>Input level</label>
-          <progress id="level" value="0" max="1"></progress>
-          <div id="levelText" class="mono" style="margin-top:6px;">rms=—</div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div class="big">Last registered note</div>
-          <div id="lastNote" class="mono" style="font-size:22px; margin-top:6px;">—</div>
-          <div id="lastNoteMeta" class="mono" style="opacity:0.8; margin-top:6px;">—</div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div class="big">Now</div>
-          <div id="now" class="mono" style="margin-top:6px;">—</div>
-        </div>
-
-        <div class="hint">
-          Debug tip: pluck one string cleanly (open A or D) and let it ring.
-          Low E can be harder to detect.
-        </div>
-      </div>
-    </div>
-
-    <div class="panel" style="flex:1; min-width:360px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <div class="big">Guitar Tab</div>
-        <div id="scoreDisplay" style="display: flex; gap: 16px; font-size: 16px; font-weight: bold;">
-          <div style="color: #1a7f37;">✓ <span id="successCount">0</span></div>
-          <div style="color: #b42318;">✗ <span id="failCount">0</span></div>
-          <div style="color: #ff9900;">⊝ <span id="skippedCount">0</span></div>
-          <div style="color: #666;">Accuracy: <span id="accuracy">0%</span></div>
-        </div>
-      </div>
-      <div class="fretboard" id="fretboard">
-        <!-- String lines -->
-        <div class="string e-high"></div>
-        <div class="string b"></div>
-        <div class="string g"></div>
-        <div class="string d"></div>
-        <div class="string a"></div>
-        <div class="string e-low"></div>
-
-        <!-- String labels -->
-        <div class="string-label" style="top: 30px;">E</div>
-        <div class="string-label" style="top: 70px;">B</div>
-        <div class="string-label" style="top: 110px;">G</div>
-        <div class="string-label" style="top: 150px;">D</div>
-        <div class="string-label" style="top: 190px;">A</div>
-        <div class="string-label" style="top: 230px;">E</div>
-
-        <!-- Hit zone -->
-        <div class="hit-zone"></div>
+      <!-- Microphone Status -->
+      <div style="min-width:180px;">
+        <div id="micStatus" class="mono" style="margin-bottom:6px;">Not enabled</div>
+        <progress id="level" value="0" max="1" style="width:100%; margin-bottom:4px;"></progress>
+        <div id="levelText" class="mono" style="font-size:12px;">rms=—</div>
       </div>
 
-      <!-- Fallback notes display for debugging (hidden by default) -->
-      <div id="notes" class="notes" style="margin-top:12px; display: none;"></div>
-
-      <div class="hint">
-        Notes move from right to left. Play them when they reach the green line.
-        Use Practice mode if you want it to advance when you hit the right note, regardless of timing.
+      <!-- Detection Status -->
+      <div style="min-width:160px;">
+        <div style="margin-bottom:4px;">
+          <strong>Last Note:</strong>
+          <div id="lastNote" class="mono" style="font-size:18px;">—</div>
+        </div>
+        <div id="now" class="mono" style="font-size:12px;">—</div>
       </div>
     </div>
   </div>
+
+  <!-- Main Fretboard Display -->
+  <div class="panel" style="width: 100%; margin-bottom: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <div class="big">Guitar Fretboard</div>
+      <div id="scoreDisplay" style="display: flex; gap: 20px; font-size: 18px; font-weight: bold;">
+        <div style="color: #1a7f37;">✓ <span id="successCount">0</span></div>
+        <div style="color: #b42318;">✗ <span id="failCount">0</span></div>
+        <div style="color: #ff9900;">⊝ <span id="skippedCount">0</span></div>
+        <div style="color: #666;">Accuracy: <span id="accuracy">0%</span></div>
+      </div>
+    </div>
+
+    <div class="fretboard" id="fretboard">
+      <!-- String lines -->
+      <div class="string e-high"></div>
+      <div class="string b"></div>
+      <div class="string g"></div>
+      <div class="string d"></div>
+      <div class="string a"></div>
+      <div class="string e-low"></div>
+
+      <!-- String labels -->
+      <div class="string-label" style="top: 45px;">E</div>
+      <div class="string-label" style="top: 105px;">B</div>
+      <div class="string-label" style="top: 165px;">G</div>
+      <div class="string-label" style="top: 225px;">D</div>
+      <div class="string-label" style="top: 285px;">A</div>
+      <div class="string-label" style="top: 345px;">E</div>
+
+      <!-- Hit zone -->
+      <div class="hit-zone"></div>
+    </div>
+
+    <!-- Fallback notes display for debugging (hidden by default) -->
+    <div id="notes" class="notes" style="margin-top:12px; display: none;"></div>
+
+    <div class="hint">
+      Notes move from right to left. Play them when the left edge reaches the green line.
+    </div>
+  </div>
+
+  <!-- Debug Info (Collapsible) -->
+  <details class="panel" style="margin-top: 12px;">
+    <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
+    <div style="margin-top: 12px;">
+      <div id="lastNoteMeta" class="mono" style="opacity:0.8; font-size:12px; margin-bottom:8px;">—</div>
+      <div class="hint">
+        Debug tip: pluck one string cleanly (open A or D) and let it ring.
+        Low E can be harder to detect.
+      </div>
+    </div>
+  </details>
 
   <!-- Full-screen feedback overlay -->
   <div id="feedbackOverlay" class="feedback-overlay"></div>
@@ -426,13 +425,21 @@ const BEATS_PER_BAR = 4;
  */
 const TUNING = [40, 45, 50, 55, 59, 64]; // MIDI values for standard tuning (E-A-D-G-B-E)
 const STRING_NAMES = ["E", "A", "D", "G", "B", "E"];
-const STRING_POSITIONS = [230, 190, 150, 110, 70, 30]; // Y positions for each string
+const STRING_POSITIONS = [345, 285, 225, 165, 105, 45]; // Y positions for each string
 const LOOKAHEAD_BEATS = 4;   // notes appear 4 beats early
 const HIT_ZONE_X = 60;       // X position of hit zone
-const NOTE_TRAVEL_DISTANCE = 400; // pixels notes travel
+let NOTE_TRAVEL_DISTANCE = 800; // will be calculated dynamically
 const MAX_FRET = 12;         // maximum fret to consider
 
 const $ = (id) => document.getElementById(id);
+
+function calculateTravelDistance() {
+  const fretboard = $("fretboard");
+  if (fretboard) {
+    const fretboardWidth = fretboard.offsetWidth;
+    NOTE_TRAVEL_DISTANCE = fretboardWidth - HIT_ZONE_X - 40; // 40px padding from right edge
+  }
+}
 
 function midiToName(midi) {
   const names = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -609,13 +616,13 @@ function createVisualNote(eventData, fretInfo) {
   }
 
   // Convert duration to pixel width (scale it appropriately)
-  const baseWidth = 32; // minimum width
-  const widthPerBeat = 40; // pixels per beat
+  const baseWidth = 48; // minimum width (matches min-width in CSS)
+  const widthPerBeat = 60; // pixels per beat (increased for larger fretboard)
   const noteWidth = Math.max(baseWidth, noteDuration * widthPerBeat);
 
   noteElement.style.width = noteWidth + "px";
 
-  // Start position (right side of fretboard)
+  // Start position (rightmost edge of fretboard)
   const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
   noteElement.style.left = startX + "px";
   noteElement.style.top = fretInfo.y + "px";
@@ -640,7 +647,7 @@ function updateVisualNotes(beatNow) {
   const fretboard = $("fretboard");
   const notesToRemove = [];
 
-  // Spawn new notes that should be visible
+  // Spawn new notes that should be visible (exactly at LOOKAHEAD_BEATS before hit time)
   for (const event of state.events) {
     if (!event.visualNote && beatNow >= event.beat - LOOKAHEAD_BEATS && !event.judged) {
       const fretInfo = midiToFret(event.midi);
@@ -665,7 +672,7 @@ function updateVisualNotes(beatNow) {
     noteData.element.style.left = currentX + "px";
 
     // Check if right edge has passed the hit zone for visual feedback
-    const noteWidth = parseFloat(noteData.element.style.width) || 32;
+    const noteWidth = parseFloat(noteData.element.style.width) || 48;
     const rightEdgeX = currentX + noteWidth;
     const hasPassedHitZone = rightEdgeX <= HIT_ZONE_X;
 
@@ -1330,8 +1337,16 @@ renderNotes();
 updateScoreDisplay();
 $("status").textContent = "ready";
 
+// Calculate proper travel distance based on fretboard width
+calculateTravelDistance();
+
 // Load available exercises
 loadAvailableExercises();
+
+// Recalculate on window resize
+window.addEventListener('resize', () => {
+  calculateTravelDistance();
+});
 </script>
 </body>
 </html>
