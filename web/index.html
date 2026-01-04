@@ -403,7 +403,7 @@ async function loadAvailableExercises() {
 
     for (const fileName of exerciseFiles) {
       try {
-        const response = await fetch(`exercises/${fileName}`);
+        const response = await fetch(`exercises/${fileName}?v=${Date.now()}`);
         if (response.ok) {
           const exercise = await response.json();
           exercise.fileName = fileName;

@@ -4,7 +4,7 @@
   "bpm": 80,
   "difficulty": "intermediate",
   "notes": [
-    { "beat": 0, "midi": 52 },
+    { "beat": 0, "midi": 45 },
     { "beat": 1, "midi": 57 },
     { "beat": 2, "midi": 60 },
     { "beat": 3, "midi": 64 },
@@ -28,7 +28,7 @@
     { "beat": 21, "midi": 65 },
     { "beat": 22, "midi": 60 },
     { "beat": 23, "midi": 57 },
-    { "beat": 24, "midi": 52 },
+    { "beat": 24, "midi": 45 },
     { "beat": 25, "midi": 57 },
     { "beat": 26, "midi": 60 },
     { "beat": 27, "midi": 64 },
