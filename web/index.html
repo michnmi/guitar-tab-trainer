@@ -335,6 +335,17 @@ async function loadAvailableExercises() {
     const exerciseFiles = ['basic-strings.json', 'chromatic-scale.json', 'simple-melody.json', 'house-of-rising-sun.json'];
     availableExercises = [];
 
+    // Add metronome-only option
+    const metronomeOnlyExercise = {
+      name: "Metronome Only",
+      description: "Just metronome clicks, no tabs",
+      bpm: 90,
+      difficulty: "metronome",
+      notes: [],
+      fileName: "metronome-only"
+    };
+    availableExercises.push(metronomeOnlyExercise);
+
     for (const fileName of exerciseFiles) {
       try {
         const response = await fetch(`exercises/${fileName}`);
@@ -350,8 +361,8 @@ async function loadAvailableExercises() {
       }
     }
 
-    // Use default exercise if no exercises were loaded
-    if (availableExercises.length === 0) {
+    // Use default exercise if no exercises were loaded (besides metronome-only)
+    if (availableExercises.length === 1) { // Only metronome option
       availableExercises.push(defaultExercise);
     }
 
@@ -955,6 +966,13 @@ const state = {
 
   ignoreUntil: 0,          // audioCtx time until which we ignore detection (ducking)
   lastRms: 0,              // optional: simple onset gating baseline
+  // auto-stop tracking for exercise completion
+  exerciseCompleted: false,
+  exerciseEndBeat: null,
+  autoStopScheduled: false,
+  // metronome-only time limit (10 minutes)
+  metronomeStartTime: null,
+  metronomeTimeLimit: 10 * 60 // 10 minutes in seconds
 };
 
 function resetPractice() {
@@ -972,6 +990,12 @@ function resetPractice() {
 
   // Clear input tracking
   state.inputAttemptedDuringWindow.clear();
+
+  // Reset auto-stop tracking
+  state.exerciseCompleted = false;
+  state.exerciseEndBeat = null;
+  state.autoStopScheduled = false;
+  state.metronomeStartTime = null;
 
   // Clear visual notes
   clearVisualNotes();
@@ -1134,6 +1158,41 @@ function loop() {
     renderNotes();
   }
 
+  // Check if exercise is completed and schedule auto-stop (only for exercises with notes)
+  if (!state.exerciseCompleted && state.events.length > 0) {
+    const allNotesJudged = state.events.every(ev => ev.judged);
+    if (allNotesJudged) {
+      state.exerciseCompleted = true;
+      // Find the last note's beat to calculate when to stop
+      const lastNoteBeat = Math.max(...state.events.map(ev => ev.beat));
+      state.exerciseEndBeat = lastNoteBeat + 4; // Stop 4 beats after last note
+      $("status").textContent = "exercise complete, stopping in 4 beats...";
+    }
+  }
+
+  // Auto-stop after exercise completion + 4 beats
+  if (state.exerciseCompleted && !state.autoStopScheduled && beatNow >= state.exerciseEndBeat) {
+    state.autoStopScheduled = true;
+    $("btnStop").click(); // Trigger the stop button
+    return; // Exit the loop
+  }
+
+  // 10-minute time limit for metronome-only mode (when no notes)
+  if (state.events.length === 0 && state.metronomeStartTime) {
+    const elapsedTime = now - state.metronomeStartTime;
+    if (elapsedTime >= state.metronomeTimeLimit) {
+      $("status").textContent = "10-minute metronome session completed";
+      $("btnStop").click(); // Trigger the stop button
+      return; // Exit the loop
+    } else {
+      // Show remaining time for metronome-only mode
+      const remainingMinutes = Math.ceil((state.metronomeTimeLimit - elapsedTime) / 60);
+      if (remainingMinutes <= 1 || Math.floor(elapsedTime) % 60 === 0) {
+        $("status").textContent = `metronome (${remainingMinutes} min remaining)`;
+      }
+    }
+  }
+
   state.rafId = requestAnimationFrame(loop);
 }
 
@@ -1251,6 +1310,9 @@ $("btnStart").addEventListener("click", async () => {
   resetPractice();
 
   state.practicing = true;
+
+  // Set metronome start time for time limit tracking
+  state.metronomeStartTime = state.audioCtx.currentTime;
 
   const useCountIn = $("countInOn").checked;
   const countInBeats = useCountIn ? BEATS_PER_BAR : 0;
