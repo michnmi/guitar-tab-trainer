@@ -739,23 +739,8 @@ function updateVisualNotes(beatNow) {
     // Use transform for smoother animation and less motion blur
     noteData.element.style.transform = `translate3d(${currentX}px, -50%, 0)`;
 
-    // Check if right edge has passed the hit zone for visual feedback
-    const noteWidth = parseFloat(noteData.element.style.width) || 80;
-    const rightEdgeX = currentX + noteWidth;
-    const hasPassedHitZone = rightEdgeX <= HIT_ZONE_X;
-
-    // Trigger visual feedback when right edge passes hit zone
-    if (hasPassedHitZone && !noteData.feedbackShown && event.judged) {
-      noteData.feedbackShown = true;
-
-      if (event.hit) {
-        showHitZoneFeedback(true);
-      } else if (event.skipped) {
-        showHitZoneFeedback(false, true);
-      } else if (event.miss) {
-        showHitZoneFeedback(false, false);
-      }
-    }
+    // Visual feedback is now handled immediately when notes are scored
+    // No delayed feedback needed here
 
     // Update visual state based on hit/miss/skipped
     if (event.hit && !noteData.element.classList.contains("hit")) {
@@ -887,10 +872,12 @@ function judgeMisses(beatNow) {
           // Wrong note was played
           ev.miss = true;
           state.failCount++;
+          showHitZoneFeedback(false, false); // Show miss feedback immediately
         } else {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
+          showHitZoneFeedback(false, true); // Show skip feedback immediately
         }
 
         updateScoreDisplay();
@@ -1209,8 +1196,9 @@ function loop() {
         }
         updateScoreDisplay();
 
-        // Show full screen feedback (hit zone feedback now handled by visual timeline)
+        // Show immediate feedback
         showFullScreenFeedback(verdict.ok);
+        showHitZoneFeedback(verdict.ok);
       } else {
         $("lastNoteMeta").textContent = `no note within timing window`;
         $("lastNote").style.outlineColor = "#999";
