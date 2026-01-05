@@ -168,6 +168,49 @@ Create JSON files in `/web/exercises/` directory:
 
 ---
 
+## 📚 Resources & References
+
+### **Technical Documentation**
+- **[Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)**: Real-time audio processing and analysis
+- **[getUserMedia API](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)**: Microphone access for browser applications
+- **[YIN Algorithm](https://www.audiolabs-erlangen.de/resources/MIR/FMP/C8/C8S2_F0-Estimation.html)**: Fundamental frequency detection for pitch analysis
+- **[MIDI Note Numbers](https://www.inspiredacoustics.com/en/MIDI_note_numbers_and_center_frequencies)**: Standard for musical note representation
+
+### **Guitar Fretboard MIDI Reference**
+
+Guitar tuning: **E-A-D-G-B-E** (low to high)
+
+| **Fret** | **E (6th)** | **A (5th)** | **D (4th)** | **G (3rd)** | **B (2nd)** | **E (1st)** |
+|----------|-------------|-------------|-------------|-------------|-------------|-------------|
+| **0**    | 40 (E2)     | 45 (A2)     | 50 (D3)     | 55 (G3)     | 59 (B3)     | 64 (E4)     |
+| **1**    | 41 (F2)     | 46 (A#2)    | 51 (D#3)    | 56 (G#3)    | 60 (C4)     | 65 (F4)     |
+| **2**    | 42 (F#2)    | 47 (B2)     | 52 (E3)     | 57 (A3)     | 61 (C#4)    | 66 (F#4)    |
+| **3**    | 43 (G2)     | 48 (C3)     | 53 (F3)     | 58 (A#3)    | 62 (D4)     | 67 (G4)     |
+| **4**    | 44 (G#2)    | 49 (C#3)    | 54 (F#3)    | 59 (B3)     | 63 (D#4)    | 68 (G#4)    |
+| **5**    | 45 (A2)     | 50 (D3)     | 55 (G3)     | 60 (C4)     | 64 (E4)     | 69 (A4)     |
+| **6**    | 46 (A#2)    | 51 (D#3)    | 56 (G#3)    | 61 (C#4)    | 65 (F4)     | 70 (A#4)    |
+| **7**    | 47 (B2)     | 52 (E3)     | 57 (A3)     | 62 (D4)     | 66 (F#4)    | 71 (B4)     |
+| **8**    | 48 (C3)     | 53 (F3)     | 58 (A#3)    | 63 (D#4)    | 67 (G4)     | 72 (C5)     |
+| **9**    | 49 (C#3)    | 54 (F#3)    | 59 (B3)     | 64 (E4)     | 68 (G#4)    | 73 (C#5)    |
+| **10**   | 50 (D3)     | 55 (G3)     | 60 (C4)     | 65 (F4)     | 69 (A4)     | 74 (D5)     |
+| **11**   | 51 (D#3)    | 56 (G#3)    | 61 (C#4)    | 66 (F#4)    | 70 (A#4)    | 75 (D#5)    |
+| **12**   | 52 (E3)     | 57 (A3)     | 62 (D4)     | 67 (G4)     | 71 (B4)     | 76 (E5)     |
+
+**Usage Example**:
+```json
+{
+  "name": "Open Strings",
+  "notes": [
+    { "beat": 0, "midi": 40 },  // Low E string (6th string, fret 0)
+    { "beat": 1, "midi": 45 },  // A string (5th string, fret 0)
+    { "beat": 2, "midi": 50 },  // D string (4th string, fret 0)
+    { "beat": 3, "midi": 64 }   // High E string (1st string, fret 0)
+  ]
+}
+```
+
+---
+
 ## 🤖 AI Development Assistant
 
 This project was developed with significant assistance from **Claude (Anthropic)** via Claude Code.
