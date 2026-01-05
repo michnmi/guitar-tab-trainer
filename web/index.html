@@ -350,7 +350,7 @@
 
       <!-- Enhanced Debug Log -->
       <div style="margin-top: 12px;">
-        <div style="font-weight: bold; margin-bottom: 8px;">Debug Log (last 5 events):</div>
+        <div style="font-weight: bold; margin-bottom: 8px;">Debug Log (all events):</div>
         <div id="debugLog" class="mono" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; padding: 8px; font-size: 10px; max-height: 200px; overflow-y: auto;">
           <div style="opacity: 0.6;">Debug information will appear here when notes are played...</div>
         </div>
@@ -362,6 +362,17 @@
         Debug tip: pluck one string cleanly (open A or D) and let it ring.
         Low E can be harder to detect.
       </div>
+    </div>
+  </details>
+
+  <!-- Practice History -->
+  <details class="panel" style="margin-top: 12px;">
+    <summary style="cursor: pointer; font-weight: bold;">Practice History</summary>
+    <div style="margin-top: 12px;">
+      <div id="practiceHistory" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; padding: 8px; font-size: 12px; max-height: 300px; overflow-y: auto;">
+        <div style="opacity: 0.6; text-align: center; padding: 20px;">No practice sessions yet. Complete an exercise to see your history!</div>
+      </div>
+      <button id="clearHistory" style="margin-top: 8px; padding: 4px 8px; font-size: 12px;">Clear History</button>
     </div>
   </details>
 
@@ -484,7 +495,7 @@ function loadExercise(exercise) {
 const MIN_RMS = 0.003;       // gate for "is there sound?"
 const STABLE_FRAMES = 2;     // require stable MIDI rounding for N frames
 const CENTS_TOLERANCE = 40;  // pitch forgiveness
-const COOLDOWN_SEC = 0.22;   // prevent double triggers on one note
+const COOLDOWN_SEC = 0.25;   // prevent double triggers on one note (reduced for slow tempos)
 const DEFAULT_BPM = 90;
 const BEATS_PER_BAR = 4;
 
@@ -817,11 +828,7 @@ function addDebugEntry(entry) {
 
   state.debugLog.push(debugEntry);
 
-  // Keep only last 10 entries
-  if (state.debugLog.length > 10) {
-    state.debugLog.shift();
-  }
-
+  // No limit - keep all entries
   updateDebugDisplay();
 }
 
@@ -850,6 +857,67 @@ function copyDebugToClipboard() {
   }).catch(() => {
     alert("Copy failed. Debug text:\n\n" + debugText);
   });
+}
+
+function addPracticeHistoryEntry() {
+  const timestamp = new Date().toLocaleString();
+  const exerciseSelect = $("exercise");
+  const exerciseName = exerciseSelect && exerciseSelect.selectedOptions.length > 0
+    ? exerciseSelect.selectedOptions[0].text
+    : "Unknown Exercise";
+
+  const total = state.successCount + state.failCount + state.skippedCount;
+  const accuracy = total === 0 ? 0 : Math.round((state.successCount / total) * 100);
+
+  const historyEntry = {
+    timestamp,
+    exercise: exerciseName,
+    bpm: state.bpm,
+    hits: state.successCount,
+    misses: state.failCount,
+    skips: state.skippedCount,
+    accuracy: accuracy,
+    total: total
+  };
+
+  console.log('Adding practice history entry:', historyEntry);
+  state.practiceHistory.push(historyEntry);
+  console.log('Practice history now has', state.practiceHistory.length, 'entries');
+  updatePracticeHistoryDisplay();
+}
+
+function updatePracticeHistoryDisplay() {
+  const historyElement = $("practiceHistory");
+  if (!historyElement) return;
+
+  if (state.practiceHistory.length === 0) {
+    historyElement.innerHTML = '<div style="opacity: 0.6; text-align: center; padding: 20px;">No practice sessions yet. Complete an exercise to see your history!</div>';
+    return;
+  }
+
+  const historyHtml = state.practiceHistory.slice(-10).reverse().map(entry => {
+    const accuracyColor = entry.accuracy >= 90 ? '#1a7f37' : entry.accuracy >= 70 ? '#ff9900' : '#b42318';
+    return `
+      <div style="border-bottom: 1px solid #ddd; padding: 8px 0; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-weight: bold; margin-bottom: 2px;">${entry.exercise}</div>
+          <div style="font-size: 11px; opacity: 0.7;">${entry.timestamp}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-weight: bold; color: ${accuracyColor};">${entry.accuracy}%</div>
+          <div style="font-size: 11px;">${entry.bpm} BPM | ${entry.hits}✓ ${entry.misses}✗ ${entry.skips}⊝</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  historyElement.innerHTML = historyHtml;
+  historyElement.scrollTop = 0; // Scroll to top to see latest
+}
+
+function clearPracticeHistory() {
+  state.practiceHistory = [];
+  updatePracticeHistoryDisplay();
 }
 
 function showFullScreenFeedback(isHit) {
@@ -924,7 +992,7 @@ function judgeMisses(beatNow) {
           // Wrong note was played
           ev.miss = true;
           state.failCount++;
-          showHitZoneFeedback(false, false); // Show miss feedback immediately
+          // Don't show feedback - misses happen outside timing windows
 
           // Debug log for missed notes
           addDebugEntry(`❌ MISS: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but wrong note was played during timing window`);
@@ -932,7 +1000,7 @@ function judgeMisses(beatNow) {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
-          showHitZoneFeedback(false, true); // Show skip feedback immediately
+          // Don't show feedback - skips happen outside timing windows
 
           // Debug log for skipped notes
           addDebugEntry(`⊝ SKIP: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but no input detected during timing window`);
@@ -954,7 +1022,7 @@ function judgeMisses(beatNow) {
  * Returns a verdict object for UI based on timing window matching
  */
 function tryMatchPlayed(beatNow, playedFreq) {
-  // Find nearest unhit note within timing window
+  // Find nearest unhit note within timing window that's close enough in pitch
   const win = timingWindowBeats(state.bpm);
   let bestDb = Infinity;
   let idx = -1;
@@ -964,8 +1032,14 @@ function tryMatchPlayed(beatNow, playedFreq) {
     if (ev.hit) continue; // allow retries until missed
     const db = Math.abs(beatNow - ev.beat);
     if (db <= win && db < bestDb) {
-      bestDb = db;
-      idx = i;
+      // Quick pitch check: reject notes that are more than 1 semitone away (even with octave correction)
+      const { correctedMidi, centsOff } = octaveCorrect(playedFreq, ev.midi);
+      const semitonesDiff = Math.abs(correctedMidi - ev.midi); // MIDI difference (1 MIDI = 1 semitone)
+
+      if (semitonesDiff <= 1) { // Allow up to 1 semitone difference
+        bestDb = db;
+        idx = i;
+      }
     }
   }
 
@@ -1084,7 +1158,10 @@ const state = {
   metronomeTimeLimit: 10 * 60, // 10 minutes in seconds
 
   // Enhanced debug logging
-  debugLog: []
+  debugLog: [],
+
+  // Practice history tracking
+  practiceHistory: []
 };
 
 function resetPractice() {
@@ -1179,6 +1256,7 @@ function loop() {
 
   // Audio processing (skip during metronome ducking period)
   let freq = null, conf = 0, rms = 0, onset = false;
+  let debugReason = "";
   if (!skipAudioProcessing) {
     // Read mic samples
     const buf = new Float32Array(state.analyser.fftSize);
@@ -1190,7 +1268,8 @@ function loop() {
     rms = pitchResult.rms;
 
     // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
-    onset = rms > Math.max(0.01, state.lastRms * 1.8);
+    // Simplified for guitar: just need RMS above minimum OR a relative jump
+    onset = rms > 0.004 || rms > state.lastRms * 1.2;
     state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
   }
 
@@ -1224,10 +1303,35 @@ function loop() {
       state.stableCount = 0;
     }
 
-    // Trigger gate
-    const canTrigger = (now - state.lastTriggerAt) > COOLDOWN_SEC;
+    // Trigger gate - make cooldown tempo-aware
+    const beatDurationSec = 60 / state.bpm;
+    const adaptiveCooldown = Math.min(COOLDOWN_SEC, beatDurationSec * 0.3); // Max 30% of beat duration
+    const canTrigger = (now - state.lastTriggerAt) > adaptiveCooldown;
 
-    if (conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger) {
+    // Debug: Check why detection might fail
+    if (freq !== null && rms > MIN_RMS) {
+      const reasons = [];
+      if (conf < 0.65) reasons.push(`conf=${conf.toFixed(2)}<0.65`);
+      if (!onset) {
+        const minThreshold = 0.004;
+        const relativeThreshold = state.lastRms * 1.2;
+        reasons.push(`no onset (rms=${rms.toFixed(4)} ≤ ${minThreshold} AND ≤ ${relativeThreshold.toFixed(4)})`);
+      }
+      if (midiFloat === null) reasons.push("no MIDI");
+      if (state.stableCount < STABLE_FRAMES) reasons.push(`unstable=${state.stableCount}/${STABLE_FRAMES}`);
+      if (!canTrigger) reasons.push(`cooldown (${adaptiveCooldown.toFixed(2)}s)`);
+
+      if (reasons.length > 0) {
+        debugReason = `🔍 DETECTED ${freq.toFixed(1)}Hz (${midiToName(Math.round(freqToMidi(freq)))}) but BLOCKED: ${reasons.join(", ")}`;
+      }
+    } else if (rms > 0.001) {
+      debugReason = `🔇 SIGNAL TOO WEAK: rms=${rms.toFixed(4)} (need >${MIN_RMS}) or no frequency detected`;
+    }
+
+    // Don't trigger new matches after exercise is completed (avoid feedback spam from sustained strings)
+    const shouldProcessDetection = !state.exerciseCompleted && conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger;
+
+    if (shouldProcessDetection) {
       state.lastTriggerAt = now;
 
       // Match against tab
@@ -1250,11 +1354,13 @@ function loop() {
         $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
 
         // Enhanced debug logging
+        const rawMidiDetected = freqToMidi(freq);
+        const rawNoteName = midiToName(Math.round(rawMidiDetected));
         const debugInfo = [
           `🎵 MATCH: ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
           `Expected: ${expectedName} (MIDI ${verdict.expected})`,
-          `Detected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
-          `Raw Freq: ${freq.toFixed(1)}Hz, Conf: ${conf.toFixed(2)}`,
+          `Raw: ${rawNoteName} (${freq.toFixed(1)}Hz) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
+          `Conf: ${conf.toFixed(2)}`,
           `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
           `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
           `Cents Off: ${verdict.centsOff.toFixed(1)} (${Math.abs(verdict.centsOff) <= CENTS_TOLERANCE ? "within tolerance" : "outside tolerance"})`
@@ -1283,6 +1389,12 @@ function loop() {
       }
 
       setTimeout(() => $("lastNote").classList.remove("flash"), 200);
+    } else if (debugReason && !state.exerciseCompleted) {
+      // Log why detection failed (but don't spam - only during timing windows and before exercise completion)
+      const hasActiveNote = state.events.some(ev => !ev.judged && Math.abs(beatNow - ev.beat) <= timingWindowBeats(state.bpm));
+      if (hasActiveNote) {
+        addDebugEntry(debugReason);
+      }
     }
 
     // Update progression
@@ -1303,6 +1415,9 @@ function loop() {
       const lastNoteBeat = Math.max(...state.events.map(ev => ev.beat));
       state.exerciseEndBeat = lastNoteBeat + 4; // Stop 4 beats after last note
       $("status").textContent = "exercise complete, stopping in 4 beats...";
+
+      // Log exercise completion and stop feedback spam
+      addDebugEntry("🎉 EXERCISE COMPLETE: All notes judged. Stopping detection feedback to prevent sustained string spam.");
     }
   }
 
@@ -1474,6 +1589,17 @@ $("btnStart").addEventListener("click", async () => {
 });
 
 $("btnStop").addEventListener("click", () => {
+  // Save practice history before resetting stats (only if there was actual practice)
+  const hadPractice = state.successCount > 0 || state.failCount > 0 || state.skippedCount > 0;
+  console.log(`Stop pressed - practicing: ${state.practicing}, hadPractice: ${hadPractice}, stats: ${state.successCount}✓ ${state.failCount}✗ ${state.skippedCount}⊝`);
+
+  if (state.practicing && hadPractice) {
+    addPracticeHistoryEntry();
+    addDebugEntry(`💾 SAVED PRACTICE: ${state.successCount}✓ ${state.failCount}✗ ${state.skippedCount}⊝`);
+  } else {
+    addDebugEntry(`❌ NO SAVE: practicing=${state.practicing}, stats=${state.successCount}✓ ${state.failCount}✗ ${state.skippedCount}⊝`);
+  }
+
   state.practicing = false;
 
   // Cancel animation frame
@@ -1525,6 +1651,9 @@ loadAvailableExercises();
 // Debug button event listeners
 $("clearDebug").addEventListener("click", clearDebugLog);
 $("copyDebug").addEventListener("click", copyDebugToClipboard);
+
+// Practice history button event listener
+$("clearHistory").addEventListener("click", clearPracticeHistory);
 
 // Recalculate on window resize
 window.addEventListener('resize', () => {
