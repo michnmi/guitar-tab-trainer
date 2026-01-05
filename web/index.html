@@ -347,7 +347,18 @@
     <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
     <div style="margin-top: 12px;">
       <div id="lastNoteMeta" class="mono" style="opacity:0.8; font-size:12px; margin-bottom:8px;">—</div>
-      <div class="hint">
+
+      <!-- Enhanced Debug Log -->
+      <div style="margin-top: 12px;">
+        <div style="font-weight: bold; margin-bottom: 8px;">Debug Log (last 5 events):</div>
+        <div id="debugLog" class="mono" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; padding: 8px; font-size: 10px; max-height: 200px; overflow-y: auto;">
+          <div style="opacity: 0.6;">Debug information will appear here when notes are played...</div>
+        </div>
+        <button id="clearDebug" style="margin-top: 8px; padding: 4px 8px; font-size: 12px;">Clear Log</button>
+        <button id="copyDebug" style="margin-top: 8px; margin-left: 8px; padding: 4px 8px; font-size: 12px;">Copy to Clipboard</button>
+      </div>
+
+      <div class="hint" style="margin-top: 12px;">
         Debug tip: pluck one string cleanly (open A or D) and let it ring.
         Low E can be harder to detect.
       </div>
@@ -800,6 +811,47 @@ function showHitZoneFeedback(isHit, isSkipped = false) {
   }, 300);
 }
 
+function addDebugEntry(entry) {
+  const timestamp = new Date().toLocaleTimeString();
+  const debugEntry = `[${timestamp}] ${entry}`;
+
+  state.debugLog.push(debugEntry);
+
+  // Keep only last 10 entries
+  if (state.debugLog.length > 10) {
+    state.debugLog.shift();
+  }
+
+  updateDebugDisplay();
+}
+
+function updateDebugDisplay() {
+  const debugLogElement = $("debugLog");
+  if (debugLogElement) {
+    debugLogElement.innerHTML = state.debugLog.join('<br>') || '<div style="opacity: 0.6;">No debug entries yet...</div>';
+    debugLogElement.scrollTop = debugLogElement.scrollHeight;
+  }
+}
+
+function clearDebugLog() {
+  state.debugLog = [];
+  updateDebugDisplay();
+}
+
+function copyDebugToClipboard() {
+  const debugText = state.debugLog.join('\n');
+  navigator.clipboard.writeText(debugText).then(() => {
+    const btn = $("copyDebug");
+    const originalText = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => {
+      btn.textContent = originalText;
+    }, 2000);
+  }).catch(() => {
+    alert("Copy failed. Debug text:\n\n" + debugText);
+  });
+}
+
 function showFullScreenFeedback(isHit) {
   const overlay = $("feedbackOverlay");
 
@@ -873,11 +925,17 @@ function judgeMisses(beatNow) {
           ev.miss = true;
           state.failCount++;
           showHitZoneFeedback(false, false); // Show miss feedback immediately
+
+          // Debug log for missed notes
+          addDebugEntry(`❌ MISS: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but wrong note was played during timing window`);
         } else {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
           showHitZoneFeedback(false, true); // Show skip feedback immediately
+
+          // Debug log for skipped notes
+          addDebugEntry(`⊝ SKIP: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but no input detected during timing window`);
         }
 
         updateScoreDisplay();
@@ -1023,7 +1081,10 @@ const state = {
   autoStopScheduled: false,
   // metronome-only time limit (10 minutes)
   metronomeStartTime: null,
-  metronomeTimeLimit: 10 * 60 // 10 minutes in seconds
+  metronomeTimeLimit: 10 * 60, // 10 minutes in seconds
+
+  // Enhanced debug logging
+  debugLog: []
 };
 
 function resetPractice() {
@@ -1188,6 +1249,19 @@ function loop() {
         $("lastNote").style.outlineColor = verdict.ok ? "#1a7f37" : "#b42318";
         $("status").textContent = verdict.ok ? "✓ correct" : "✗ wrong";
 
+        // Enhanced debug logging
+        const debugInfo = [
+          `🎵 MATCH: ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
+          `Expected: ${expectedName} (MIDI ${verdict.expected})`,
+          `Detected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
+          `Raw Freq: ${freq.toFixed(1)}Hz, Conf: ${conf.toFixed(2)}`,
+          `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
+          `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
+          `Cents Off: ${verdict.centsOff.toFixed(1)} (${Math.abs(verdict.centsOff) <= CENTS_TOLERANCE ? "within tolerance" : "outside tolerance"})`
+        ].join(" | ");
+
+        addDebugEntry(debugInfo);
+
         // Update score counters
         if (verdict.ok) {
           state.successCount++;
@@ -1203,6 +1277,9 @@ function loop() {
         $("lastNoteMeta").textContent = `no note within timing window`;
         $("lastNote").style.outlineColor = "#999";
         $("status").textContent = "no match";
+
+        // Log cases where no note was matched
+        addDebugEntry(`🔍 NO MATCH: Detected ${midiToName(midiRounded)} (${freq.toFixed(1)}Hz, conf ${conf.toFixed(2)}) at beat ${beatNow.toFixed(2)} but no expected note within timing window`);
       }
 
       setTimeout(() => $("lastNote").classList.remove("flash"), 200);
@@ -1388,6 +1465,12 @@ $("btnStart").addEventListener("click", async () => {
   $("status").textContent = useCountIn ? "count-in…" : "running";
 
   state.rafId = requestAnimationFrame(loop);
+
+  // Log exercise start with expected notes sequence
+  const exerciseNotes = state.events.map((ev, i) =>
+    `${i + 1}: ${midiToName(ev.midi)} (beat ${ev.beat.toFixed(1)})`
+  ).join(", ");
+  addDebugEntry(`🎼 EXERCISE START: ${exerciseNotes}`);
 });
 
 $("btnStop").addEventListener("click", () => {
@@ -1438,6 +1521,10 @@ calculateTravelDistance();
 
 // Load available exercises
 loadAvailableExercises();
+
+// Debug button event listeners
+$("clearDebug").addEventListener("click", clearDebugLog);
+$("copyDebug").addEventListener("click", copyDebugToClipboard);
 
 // Recalculate on window resize
 window.addEventListener('resize', () => {
