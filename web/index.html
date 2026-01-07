@@ -248,6 +248,39 @@
         -1px -1px 2px rgba(0,0,0,0.5);
     }
 
+    /* Chord grouping styles */
+    .chord-group {
+      position: absolute;
+      background: rgba(100, 150, 255, 0.1);
+      border: 2px dashed rgba(100, 150, 255, 0.4);
+      border-radius: 12px;
+      z-index: 2;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+
+    .chord-group.hit {
+      background: rgba(26, 127, 55, 0.2);
+      border-color: rgba(26, 127, 55, 0.6);
+    }
+
+    .chord-group.miss {
+      background: rgba(180, 35, 24, 0.2);
+      border-color: rgba(180, 35, 24, 0.6);
+    }
+
+    .chord-group.skipped {
+      background: rgba(255, 153, 0, 0.2);
+      border-color: rgba(255, 153, 0, 0.6);
+    }
+
+    .fret-note.chord-member {
+      border-color: rgba(100, 150, 255, 0.6);
+      box-shadow:
+        0 0 0 2px rgba(100, 150, 255, 0.6),
+        0 6px 20px rgba(0,0,0,0.4);
+    }
+
     .string-label {
       position: absolute;
       left: 10px;
@@ -722,15 +755,26 @@ function createVisualNote(eventData, fretInfo) {
   const noteId = state.nextNoteId++;
   const fretboard = $("fretboard");
 
+  // Check if this is a chord event
+  if (eventData.type === "chord") {
+    return createVisualChord(eventData, noteId);
+  }
+
+  // Single note logic (existing)
   const noteElement = document.createElement("div");
   noteElement.className = "fret-note";
+
+  // Use fretInfo if provided, otherwise derive from MIDI
+  const actualFretInfo = fretInfo || midiToFret(eventData.midi);
+  if (!actualFretInfo) return null;
+
   // Make open strings (fret 0) more distinguishable
-  if (fretInfo.fret === 0) {
+  if (actualFretInfo.fret === 0) {
     noteElement.textContent = "O"; // Use "O" instead of "0" for open strings
     noteElement.style.fontSize = "20px"; // Slightly smaller for the "O"
     noteElement.classList.add("open-string");
   } else {
-    noteElement.textContent = fretInfo.fret.toString();
+    noteElement.textContent = actualFretInfo.fret.toString();
   }
 
   // Calculate note duration for width
@@ -752,7 +796,7 @@ function createVisualNote(eventData, fretInfo) {
   // Start position (rightmost edge of fretboard) - using transform for better performance
   const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
   noteElement.style.left = "0px"; // Keep at origin for transform calculations
-  noteElement.style.top = fretInfo.y + "px";
+  noteElement.style.top = actualFretInfo.y + "px";
   noteElement.style.transform = `translate3d(${startX}px, -50%, 0)`;
 
   fretboard.appendChild(noteElement);
@@ -760,7 +804,7 @@ function createVisualNote(eventData, fretInfo) {
   const noteData = {
     element: noteElement,
     eventData: eventData,
-    fretInfo: fretInfo,
+    fretInfo: actualFretInfo,
     noteId: noteId,
     spawned: false,
     duration: noteDuration,
@@ -771,6 +815,132 @@ function createVisualNote(eventData, fretInfo) {
   return noteData;
 }
 
+function createVisualChord(eventData, baseNoteId) {
+  const fretboard = $("fretboard");
+  const chordElements = [];
+  const chordNoteData = [];
+
+  // Calculate note duration for width
+  const currentEventIndex = state.events.findIndex(e => e === eventData);
+  let noteDuration = 1.0; // Default duration in beats
+
+  if (currentEventIndex >= 0 && currentEventIndex < state.events.length - 1) {
+    const nextEvent = state.events[currentEventIndex + 1];
+    noteDuration = nextEvent.beat - eventData.beat;
+  }
+
+  const baseWidth = 80;
+  const widthPerBeat = 100;
+  const noteWidth = Math.max(baseWidth, noteDuration * widthPerBeat);
+  const startX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE;
+
+  // Create a chord container that will hold both the background and notes
+  const chordContainer = document.createElement("div");
+  chordContainer.className = "chord-container";
+  chordContainer.style.position = "absolute";
+  chordContainer.style.left = "0px";
+  chordContainer.style.top = "0px";
+  chordContainer.style.transform = `translate3d(${startX}px, 0, 0)`;
+  chordContainer.style.pointerEvents = "none";
+
+  // Create visual elements for each chord tone
+  let minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < eventData.notes.length; i++) {
+    const chordNote = eventData.notes[i];
+    const noteId = baseNoteId + i * 0.1; // Ensure unique IDs
+
+    // Get fret info - use from MusicXML if available, otherwise calculate
+    let fretInfo;
+    if (chordNote.string && chordNote.fret !== undefined) {
+      // Use MusicXML tablature info directly
+      const STRING_POSITIONS = [345, 285, 225, 165, 105, 45]; // positions for strings 6-1
+      const STRING_NAMES = ["E", "A", "D", "G", "B", "E"];
+      fretInfo = {
+        string: chordNote.string - 1, // Convert 1-based to 0-based
+        fret: chordNote.fret,
+        y: STRING_POSITIONS[6 - chordNote.string], // Convert 1-based to position array
+        stringName: STRING_NAMES[6 - chordNote.string]
+      };
+    } else {
+      // Fallback to MIDI-based calculation
+      fretInfo = midiToFret(chordNote.midi);
+    }
+
+    if (!fretInfo) continue;
+
+    // Create note element
+    const noteElement = document.createElement("div");
+    noteElement.className = "fret-note chord-member";
+
+    if (fretInfo.fret === 0) {
+      noteElement.textContent = "O";
+      noteElement.style.fontSize = "20px";
+      noteElement.classList.add("open-string");
+    } else {
+      noteElement.textContent = fretInfo.fret.toString();
+    }
+
+    noteElement.style.width = noteWidth + "px";
+    noteElement.style.left = "0px";
+    noteElement.style.top = fretInfo.y + "px";
+    noteElement.style.transform = `translate3d(0px, -50%, 0)`; // No X translation, container handles it
+
+    chordContainer.appendChild(noteElement);
+    chordElements.push(noteElement);
+
+    // Track Y bounds for chord group background
+    minY = Math.min(minY, fretInfo.y);
+    maxY = Math.max(maxY, fretInfo.y);
+
+    const noteData = {
+      element: noteElement,
+      eventData: eventData,
+      fretInfo: fretInfo,
+      noteId: noteId,
+      spawned: false,
+      duration: noteDuration,
+      feedbackShown: false,
+      chordIndex: i,
+      isChordMember: true,
+      container: chordContainer
+    };
+
+    chordNoteData.push(noteData);
+    state.visualNotes.set(noteId, noteData);
+  }
+
+  // Create chord group background within the container
+  if (chordElements.length > 1) {
+    const chordGroup = document.createElement("div");
+    chordGroup.className = "chord-group";
+
+    // Calculate proper dimensions and position relative to container
+    const groupHeight = maxY - minY + 70; // Add padding for note height
+    const groupWidth = noteWidth + 24; // Add padding for note width
+
+    // Position the group within the container (no transform needed)
+    const groupTop = minY - 35; // Center vertically on the notes
+
+    chordGroup.style.width = groupWidth + "px";
+    chordGroup.style.height = groupHeight + "px";
+    chordGroup.style.left = "-12px"; // Just a bit left of notes to encompass them properly
+    chordGroup.style.top = groupTop + "px";
+    chordGroup.style.transform = "none"; // No transform needed, positioned relative to container
+
+    chordContainer.appendChild(chordGroup);
+
+    // Store reference to chord group in all chord members
+    chordNoteData.forEach(noteData => {
+      noteData.chordGroup = chordGroup;
+    });
+  }
+
+  // Add the container to the fretboard
+  fretboard.appendChild(chordContainer);
+
+  return chordNoteData[0]; // Return the first note for main tracking
+}
+
 function updateVisualNotes(beatNow) {
   const fretboard = $("fretboard");
   const notesToRemove = [];
@@ -778,9 +948,20 @@ function updateVisualNotes(beatNow) {
   // Spawn new notes that should be visible (exactly at LOOKAHEAD_BEATS before hit time)
   for (const event of state.events) {
     if (!event.visualNote && beatNow >= event.beat - LOOKAHEAD_BEATS && !event.judged) {
-      const fretInfo = midiToFret(event.midi);
-      if (fretInfo) {
-        const noteData = createVisualNote(event, fretInfo);
+      let noteData = null;
+
+      if (event.type === "chord") {
+        // Create chord visualization
+        noteData = createVisualNote(event, null);
+      } else {
+        // Single note
+        const fretInfo = midiToFret(event.midi);
+        if (fretInfo) {
+          noteData = createVisualNote(event, fretInfo);
+        }
+      }
+
+      if (noteData) {
         event.visualNote = noteData;
         noteData.spawned = true;
       }
@@ -797,8 +978,17 @@ function updateVisualNotes(beatNow) {
     // Position so left edge touches hit zone when timeToHit = 0
     const currentX = HIT_ZONE_X + NOTE_TRAVEL_DISTANCE * (1 - progress);
 
-    // Use transform for smoother animation and less motion blur
-    noteData.element.style.transform = `translate3d(${currentX}px, -50%, 0)`;
+    // For chord members, animate the container instead of individual notes
+    if (noteData.isChordMember && noteData.container) {
+      if (noteData.chordIndex === 0) {
+        // Only update container position from the first chord member
+        noteData.container.style.transform = `translate3d(${currentX}px, 0, 0)`;
+      }
+      // Individual notes within chord don't need transform updates since they're relative to container
+    } else {
+      // Single notes use their own transform
+      noteData.element.style.transform = `translate3d(${currentX}px, -50%, 0)`;
+    }
 
     // Visual feedback is now handled immediately when notes are scored
     // No delayed feedback needed here
@@ -806,12 +996,24 @@ function updateVisualNotes(beatNow) {
     // Update visual state based on hit/miss/skipped
     if (event.hit && !noteData.element.classList.contains("hit")) {
       noteData.element.classList.add("hit");
+      // Update chord group feedback
+      if (noteData.chordGroup) {
+        noteData.chordGroup.classList.add("hit");
+      }
     }
     if (event.miss && !noteData.element.classList.contains("miss")) {
       noteData.element.classList.add("miss");
+      // Update chord group feedback
+      if (noteData.chordGroup) {
+        noteData.chordGroup.classList.add("miss");
+      }
     }
     if (event.skipped && !noteData.element.classList.contains("skipped")) {
       noteData.element.classList.add("skipped");
+      // Update chord group feedback
+      if (noteData.chordGroup) {
+        noteData.chordGroup.classList.add("skipped");
+      }
     }
 
     // Remove notes that have passed the hit zone
@@ -825,6 +1027,11 @@ function updateVisualNotes(beatNow) {
     const noteData = state.visualNotes.get(noteId);
     if (noteData && noteData.element && noteData.element.parentNode) {
       noteData.element.remove();
+
+      // Clean up chord group when removing the first chord member
+      if (noteData.isChordMember && noteData.chordIndex === 0 && noteData.chordGroup && noteData.chordGroup.parentNode) {
+        noteData.chordGroup.remove();
+      }
     }
     state.visualNotes.delete(noteId);
   }
@@ -998,10 +1205,21 @@ function renderNotes() {
     if (ev.skipped) cls += " skipped";
 
     div.className = cls;
-    div.innerHTML = `
-      <div class="mono">${midiToName(ev.midi)}</div>
-      <div class="t mono">beat=${ev.beat.toFixed(2)}</div>
-    `;
+
+    // Handle chord vs single note display
+    if (ev.type === "chord") {
+      const chordTones = ev.notes.map(note => midiToName(note.midi)).join("+");
+      div.innerHTML = `
+        <div class="mono">[${chordTones}]</div>
+        <div class="t mono">chord beat=${ev.beat.toFixed(2)}</div>
+      `;
+    } else {
+      div.innerHTML = `
+        <div class="mono">${midiToName(ev.midi)}</div>
+        <div class="t mono">beat=${ev.beat.toFixed(2)}</div>
+      `;
+    }
+
     root.appendChild(div);
   }
 }
@@ -1036,7 +1254,10 @@ function judgeMisses(beatNow) {
           showHitZoneFeedback(false, false);
 
           // Debug log for missed notes
-          addDebugEntry(`❌ MISS: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but wrong note was played during timing window`);
+          const expectedInfo = ev.type === "chord"
+            ? `chord [${ev.notes.map(n => midiToName(n.midi)).join("+")}]`
+            : midiToName(ev.midi);
+          addDebugEntry(`❌ MISS: Expected ${expectedInfo} at beat ${ev.beat.toFixed(2)}, but wrong note was played during timing window`);
         } else {
           // No input at all - note was skipped
           ev.skipped = true;
@@ -1046,7 +1267,10 @@ function judgeMisses(beatNow) {
           showHitZoneFeedback(false, true);
 
           // Debug log for skipped notes
-          addDebugEntry(`⊝ SKIP: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but no input detected during timing window`);
+          const expectedInfo = ev.type === "chord"
+            ? `chord [${ev.notes.map(n => midiToName(n.midi)).join("+")}]`
+            : midiToName(ev.midi);
+          addDebugEntry(`⊝ SKIP: Expected ${expectedInfo} at beat ${ev.beat.toFixed(2)}, but no input detected during timing window`);
         }
 
         updateScoreDisplay();
@@ -1069,19 +1293,41 @@ function tryMatchPlayed(beatNow, playedFreq) {
   const win = timingWindowBeats(state.bpm);
   let bestDb = Infinity;
   let idx = -1;
+  let matchedChordTone = null;
 
   for (let i = 0; i < state.events.length; i++) {
     const ev = state.events[i];
     if (ev.hit) continue; // allow retries until missed
     const db = Math.abs(beatNow - ev.beat);
     if (db <= win && db < bestDb) {
-      // Quick pitch check: reject notes that are more than 1 semitone away (even with octave correction)
-      const { correctedMidi, centsOff } = octaveCorrect(playedFreq, ev.midi);
-      const semitonesDiff = Math.abs(correctedMidi - ev.midi); // MIDI difference (1 MIDI = 1 semitone)
 
-      if (semitonesDiff <= 1) { // Allow up to 1 semitone difference
-        bestDb = db;
-        idx = i;
+      if (ev.type === "chord") {
+        // Check if played note matches any chord tone
+        let chordMatch = null;
+        for (const chordTone of ev.notes) {
+          const { correctedMidi, centsOff } = octaveCorrect(playedFreq, chordTone.midi);
+          const semitonesDiff = Math.abs(correctedMidi - chordTone.midi);
+
+          if (semitonesDiff <= 1) { // Allow up to 1 semitone difference
+            chordMatch = { chordTone, correctedMidi, centsOff };
+            break;
+          }
+        }
+
+        if (chordMatch) {
+          bestDb = db;
+          idx = i;
+          matchedChordTone = chordMatch;
+        }
+      } else {
+        // Single note matching (existing logic)
+        const { correctedMidi, centsOff } = octaveCorrect(playedFreq, ev.midi);
+        const semitonesDiff = Math.abs(correctedMidi - ev.midi);
+
+        if (semitonesDiff <= 1) { // Allow up to 1 semitone difference
+          bestDb = db;
+          idx = i;
+        }
       }
     }
   }
@@ -1093,9 +1339,22 @@ function tryMatchPlayed(beatNow, playedFreq) {
 
   const ev = state.events[idx];
 
-  const { correctedMidi, centsOff } = octaveCorrect(playedFreq, ev.midi);
-  const ok = Math.abs(centsOff) <= CENTS_TOLERANCE;
+  let correctedMidi, centsOff, expectedMidi;
 
+  if (ev.type === "chord" && matchedChordTone) {
+    // Chord matching
+    correctedMidi = matchedChordTone.correctedMidi;
+    centsOff = matchedChordTone.centsOff;
+    expectedMidi = matchedChordTone.chordTone.midi;
+  } else {
+    // Single note matching
+    const correction = octaveCorrect(playedFreq, ev.midi);
+    correctedMidi = correction.correctedMidi;
+    centsOff = correction.centsOff;
+    expectedMidi = ev.midi;
+  }
+
+  const ok = Math.abs(centsOff) <= CENTS_TOLERANCE;
   const timingBeats = beatNow - ev.beat;
 
   if (ok) {
@@ -1105,11 +1364,14 @@ function tryMatchPlayed(beatNow, playedFreq) {
 
   return {
     ok,
-    expected: ev.midi,
+    expected: expectedMidi,
     detected: correctedMidi,
     centsOff,
     timingBeats,
-    expectedBeat: ev.beat
+    expectedBeat: ev.beat,
+    isChord: ev.type === "chord",
+    chordTone: matchedChordTone?.chordTone,
+    chordSize: ev.type === "chord" ? ev.notes.length : 1
   };
 }
 
@@ -1399,15 +1661,33 @@ function loop() {
         // Enhanced debug logging
         const rawMidiDetected = freqToMidi(freq);
         const rawNoteName = midiToName(Math.round(rawMidiDetected));
-        const debugInfo = [
-          `🎵 MATCH: ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
-          `Expected: ${expectedName} (MIDI ${verdict.expected})`,
-          `Raw: ${rawNoteName} (${freq.toFixed(1)}Hz) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
-          `Conf: ${conf.toFixed(2)}`,
-          `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
-          `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
-          `Cents Off: ${verdict.centsOff.toFixed(1)} (${Math.abs(verdict.centsOff) <= CENTS_TOLERANCE ? "within tolerance" : "outside tolerance"})`
-        ].join(" | ");
+
+        let debugInfo;
+        if (verdict.isChord) {
+          const chordToneInfo = verdict.chordTone ?
+            `string ${verdict.chordTone.string || "?"} fret ${verdict.chordTone.fret || "?"}` :
+            "unknown position";
+
+          debugInfo = [
+            `🎵 CHORD ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
+            `Matched: ${expectedName} (${chordToneInfo}) from ${verdict.chordSize}-note chord`,
+            `Raw: ${rawNoteName} (${freq.toFixed(1)}Hz) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
+            `Conf: ${conf.toFixed(2)}`,
+            `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
+            `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
+            `Cents Off: ${verdict.centsOff.toFixed(1)} (${Math.abs(verdict.centsOff) <= CENTS_TOLERANCE ? "within tolerance" : "outside tolerance"})`
+          ].join(" | ");
+        } else {
+          debugInfo = [
+            `🎵 SINGLE NOTE: ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
+            `Expected: ${expectedName} (MIDI ${verdict.expected})`,
+            `Raw: ${rawNoteName} (${freq.toFixed(1)}Hz) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
+            `Conf: ${conf.toFixed(2)}`,
+            `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
+            `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
+            `Cents Off: ${verdict.centsOff.toFixed(1)} (${Math.abs(verdict.centsOff) <= CENTS_TOLERANCE ? "within tolerance" : "outside tolerance"})`
+          ].join(" | ");
+        }
 
         addDebugEntry(debugInfo);
 
@@ -1625,9 +1905,14 @@ $("btnStart").addEventListener("click", async () => {
   state.rafId = requestAnimationFrame(loop);
 
   // Log exercise start with expected notes sequence
-  const exerciseNotes = state.events.map((ev, i) =>
-    `${i + 1}: ${midiToName(ev.midi)} (beat ${ev.beat.toFixed(1)})`
-  ).join(", ");
+  const exerciseNotes = state.events.map((ev, i) => {
+    if (ev.type === "chord") {
+      const chordTones = ev.notes.map(note => midiToName(note.midi)).join("+");
+      return `${i + 1}: [${chordTones}] chord (beat ${ev.beat.toFixed(1)})`;
+    } else {
+      return `${i + 1}: ${midiToName(ev.midi)} (beat ${ev.beat.toFixed(1)})`;
+    }
+  }).join(", ");
   addDebugEntry(`🎼 EXERCISE START: ${exerciseNotes}`);
 });
 
@@ -1932,7 +2217,7 @@ function setupMusicXMLUpload() {
         bpm = parseInt(tempoElements[0].textContent) || 120;
       }
 
-      // Extract notes
+      // Extract notes and chords
       const notes = [];
       let currentBeat = 0;
 
@@ -1943,47 +2228,108 @@ function setupMusicXMLUpload() {
         const measure = measures[measureIndex];
         const noteElements = measure.getElementsByTagName("note");
 
-        for (let noteIndex = 0; noteIndex < noteElements.length; noteIndex++) {
-          const noteElement = noteElements[noteIndex];
+        let i = 0;
+        while (i < noteElements.length) {
+          const noteElement = noteElements[i];
 
           // Skip rests
           if (noteElement.getElementsByTagName("rest").length > 0) {
             // Still need to advance timing for rests
             const duration = getDuration(noteElement);
             currentBeat += duration;
+            i++;
             continue;
           }
 
-          // Skip chord tones (keep only the first note of chords)
-          if (noteElement.getElementsByTagName("chord").length > 0) {
-            continue;
+          // Check if this is a chord (starts with a note that has chord tones following)
+          const chordNotes = [];
+          let currentNoteIndex = i;
+
+          // Collect the first note
+          const firstNote = parseNoteElement(noteElements[currentNoteIndex]);
+          if (firstNote && firstNote.midi >= 40 && firstNote.midi <= 84) {
+            chordNotes.push(firstNote);
+          }
+          currentNoteIndex++;
+
+          // Collect any subsequent chord tones
+          while (currentNoteIndex < noteElements.length) {
+            const chordElement = noteElements[currentNoteIndex];
+
+            // Check if this note has <chord/> element (indicating it's part of the chord)
+            if (chordElement.getElementsByTagName("chord").length > 0) {
+              const chordNote = parseNoteElement(chordElement);
+              if (chordNote && chordNote.midi >= 40 && chordNote.midi <= 84) {
+                chordNotes.push(chordNote);
+              }
+              currentNoteIndex++;
+            } else {
+              break; // No more chord tones
+            }
           }
 
-          // Get pitch
-          const pitch = noteElement.getElementsByTagName("pitch")[0];
-          if (!pitch) continue;
-
-          const step = pitch.getElementsByTagName("step")[0]?.textContent;
-          const alter = pitch.getElementsByTagName("alter")[0]?.textContent;
-          const octave = pitch.getElementsByTagName("octave")[0]?.textContent;
-
-          if (!step || !octave) continue;
-
-          // Convert to MIDI note number
-          const midiNote = pitchToMIDI(step, alter ? parseInt(alter) : 0, parseInt(octave));
-
-          // Filter to guitar range (MIDI 40-84, E2 to C6)
-          if (midiNote >= 40 && midiNote <= 84) {
+          // Create note event (single note or chord)
+          if (chordNotes.length > 1) {
+            // This is a chord - create chord event
             notes.push({
-              beat: Math.round(currentBeat * 4) / 4, // Round to nearest quarter beat
-              midi: midiNote
+              beat: Math.round(currentBeat * 4) / 4,
+              type: "chord",
+              notes: chordNotes
+            });
+          } else if (chordNotes.length === 1) {
+            // Single note
+            notes.push({
+              beat: Math.round(currentBeat * 4) / 4,
+              midi: chordNotes[0].midi,
+              string: chordNotes[0].string,
+              fret: chordNotes[0].fret
             });
           }
 
-          // Advance timing
-          const duration = getDuration(noteElement);
-          currentBeat += duration;
+          // Advance timing (use duration from first note)
+          if (firstNote) {
+            const duration = getDuration(noteElements[i]);
+            currentBeat += duration;
+          }
+
+          // Move to next note group
+          i = currentNoteIndex;
         }
+      }
+
+      // Helper function to parse individual note elements
+      function parseNoteElement(noteElement) {
+        // Get pitch
+        const pitch = noteElement.getElementsByTagName("pitch")[0];
+        if (!pitch) return null;
+
+        const step = pitch.getElementsByTagName("step")[0]?.textContent;
+        const alter = pitch.getElementsByTagName("alter")[0]?.textContent;
+        const octave = pitch.getElementsByTagName("octave")[0]?.textContent;
+
+        if (!step || !octave) return null;
+
+        // Convert to MIDI note number
+        const midiNote = pitchToMIDI(step, alter ? parseInt(alter) : 0, parseInt(octave));
+
+        // Get guitar tablature info if available
+        let string = null, fret = null;
+        const technical = noteElement.getElementsByTagName("technical")[0];
+        if (technical) {
+          const stringEl = technical.getElementsByTagName("string")[0];
+          const fretEl = technical.getElementsByTagName("fret")[0];
+          if (stringEl) string = parseInt(stringEl.textContent);
+          if (fretEl) fret = parseInt(fretEl.textContent);
+        }
+
+        return {
+          midi: midiNote,
+          step: step,
+          alter: alter ? parseInt(alter) : 0,
+          octave: parseInt(octave),
+          string: string,
+          fret: fret
+        };
       }
 
       // Create exercise object

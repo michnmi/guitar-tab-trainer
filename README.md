@@ -23,11 +23,13 @@ No plugins. No native apps. Just your browser and a microphone.
 - Large, animated fretboard with 6 strings (E-A-D-G-B-E)
 - Rectangular notes showing fret numbers that move right-to-left
 - Note width represents timing duration for better rhythm visualization
+- **Chord visualization**: Multiple notes grouped with dotted borders for chord recognition
 - Hit zone with real-time visual feedback (green/red/orange)
 
 ### 🎯 **Timing & Scoring System**
 - **Timing-based matching**: Hit notes when left edge reaches green line
 - **Three-category scoring**: Hits ✓, Misses ✗, Skipped ⊝
+- **Chord tolerance**: Any note from a chord counts as success (play one, get credit for all)
 - **Smart detection**: Distinguishes wrong notes vs. no input
 - **Real-time accuracy**: Live percentage calculation with score tracking
 - **Visual feedback**: Hit zone line glows green (hit), red (wrong note), or yellow (missed)
@@ -71,6 +73,7 @@ No plugins. No native apps. Just your browser and a microphone.
    - Watch rectangular notes move from right to left across the fretboard
    - Play the correct fret when the left edge of each note reaches the green line
    - Note width shows how long to sustain each note
+   - **Chord Support**: When multiple notes appear grouped with a dotted border, play ANY one of the chord tones for success
    - The green feedback line changes color: green (hit), red (wrong note), yellow (missed)
 
 4. **Scoring**:
@@ -80,7 +83,7 @@ No plugins. No native apps. Just your browser and a microphone.
 
 ## 🚧 Current Limitations
 
-- **Monophonic only**: One note at a time (no chords)
+- **Chord tolerance mode**: While chords are supported visually, only one note needs to be played from each chord
 - **Pitch-based detection**: Detects what you played, not which fret/string
 - **Timing-based only**: Removed practice mode - all exercises require proper timing
 - **Best with headphones**: Prevents metronome feedback into microphone
