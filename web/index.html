@@ -1031,7 +1031,9 @@ function judgeMisses(beatNow) {
           // Wrong note was played
           ev.miss = true;
           state.failCount++;
-          // Don't show feedback - misses happen outside timing windows
+
+          // Show miss feedback on hit zone
+          showHitZoneFeedback(false, false);
 
           // Debug log for missed notes
           addDebugEntry(`❌ MISS: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but wrong note was played during timing window`);
@@ -1039,7 +1041,9 @@ function judgeMisses(beatNow) {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
-          // Don't show feedback - skips happen outside timing windows
+
+          // Show skip feedback on hit zone
+          showHitZoneFeedback(false, true);
 
           // Debug log for skipped notes
           addDebugEntry(`⊝ SKIP: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but no input detected during timing window`);
