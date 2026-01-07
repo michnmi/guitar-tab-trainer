@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tab Trainer (Monophonic)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
     h1 { margin: 0 0 12px 0; }
@@ -14,6 +15,34 @@
     .big { font-size: 20px; font-weight: 650; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     label { display:block; font-size: 12px; opacity: 0.75; margin-bottom: 6px; }
+
+    /* File upload styles */
+    .upload-section {
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      text-align: center;
+      background: #f9f9f9;
+      transition: all 0.2s ease;
+    }
+    .upload-section.dragover {
+      border-color: #007bff;
+      background: #e6f3ff;
+    }
+    .upload-section input[type="file"] {
+      margin: 8px 0;
+    }
+    .upload-status {
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .upload-status.success {
+      color: #1a7f37;
+    }
+    .upload-status.error {
+      color: #b42318;
+    }
 
     .notes { display:flex; gap:10px; flex-wrap: wrap; }
     .note {
@@ -261,6 +290,16 @@
           <select id="exercise">
             <option value="">Loading exercises...</option>
           </select>
+        </div>
+      </div>
+
+      <!-- MusicXML Upload -->
+      <div style="min-width:300px;">
+        <label>Upload MusicXML File</label>
+        <div class="upload-section" id="uploadSection">
+          <div>Drop a MusicXML file here or</div>
+          <input type="file" id="musicxmlFile" accept=".mxl,.xml,.musicxml" />
+          <div class="upload-status" id="uploadStatus"></div>
         </div>
       </div>
 
@@ -1659,6 +1698,185 @@ $("clearHistory").addEventListener("click", clearPracticeHistory);
 window.addEventListener('resize', () => {
   calculateTravelDistance();
 });
+
+// MusicXML Upload functionality
+function setupMusicXMLUpload() {
+  const uploadSection = $("uploadSection");
+  const fileInput = $("musicxmlFile");
+  const uploadStatus = $("uploadStatus");
+
+  // Handle file input change
+  fileInput.addEventListener("change", handleFileUpload);
+
+  // Handle drag and drop
+  uploadSection.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    uploadSection.classList.add("dragover");
+  });
+
+  uploadSection.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    uploadSection.classList.remove("dragover");
+  });
+
+  uploadSection.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadSection.classList.remove("dragover");
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFile(files[0]);
+    }
+  });
+
+  function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+      handleFile(file);
+    }
+  }
+
+  function handleFile(file) {
+    // Validate file type
+    const validExtensions = ['.mxl', '.xml', '.musicxml'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    if (!validExtensions.includes(fileExtension)) {
+      showUploadStatus("Please select a MusicXML file (.mxl, .xml, or .musicxml)", "error");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showUploadStatus("File is too large. Please select a file smaller than 5MB.", "error");
+      return;
+    }
+
+    showUploadStatus("Reading file...", "");
+
+    // Check if it's a compressed .mxl file
+    if (fileExtension === '.mxl') {
+      // Read as binary for ZIP extraction
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          extractMXLFile(e.target.result, file.name);
+        } catch (error) {
+          console.error("Error reading MXL file:", error);
+          showUploadStatus("Error reading MXL file. Please try again.", "error");
+        }
+      };
+
+      reader.onerror = function() {
+        showUploadStatus("Error reading MXL file. Please try again.", "error");
+      };
+
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Read as text for XML files
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const xmlContent = e.target.result;
+          processMusicXMLFile(xmlContent, file.name);
+        } catch (error) {
+          console.error("Error reading file:", error);
+          showUploadStatus("Error reading file. Please try again.", "error");
+        }
+      };
+
+      reader.onerror = function() {
+        showUploadStatus("Error reading file. Please try again.", "error");
+      };
+
+      reader.readAsText(file);
+    }
+  }
+
+  function extractMXLFile(arrayBuffer, fileName) {
+    try {
+      showUploadStatus("Extracting MXL file...", "");
+
+      // Use JSZip to properly extract the MXL file
+      JSZip.loadAsync(arrayBuffer).then(function(zip) {
+        // Look for score.xml in the ZIP
+        const scoreFile = zip.file("score.xml");
+
+        if (!scoreFile) {
+          showUploadStatus("Could not find score.xml in MXL file.", "error");
+          return;
+        }
+
+        // Extract the score.xml content
+        scoreFile.async("text").then(function(xmlContent) {
+          processMusicXMLFile(xmlContent, fileName);
+        }).catch(function(error) {
+          console.error("Error reading score.xml:", error);
+          showUploadStatus("Error reading score.xml from MXL file.", "error");
+        });
+
+      }).catch(function(error) {
+        console.error("Error extracting MXL file:", error);
+        showUploadStatus("Invalid MXL file format. Please check the file.", "error");
+      });
+
+    } catch (error) {
+      console.error("Error processing MXL file:", error);
+      showUploadStatus("Error processing MXL file. Please try a different file.", "error");
+    }
+  }
+
+  function processMusicXMLFile(xmlContent, fileName) {
+    try {
+      // Basic validation - check if it's valid XML and contains MusicXML elements
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+
+      // Check for XML parsing errors
+      const parseError = xmlDoc.getElementsByTagName("parsererror");
+      if (parseError.length > 0) {
+        showUploadStatus("Invalid XML file. Please check the file format.", "error");
+        return;
+      }
+
+      // Check for MusicXML root elements
+      const scorePartwise = xmlDoc.getElementsByTagName("score-partwise")[0];
+      const scoreTimewise = xmlDoc.getElementsByTagName("score-timewise")[0];
+
+      if (!scorePartwise && !scoreTimewise) {
+        showUploadStatus("This doesn't appear to be a valid MusicXML file.", "error");
+        return;
+      }
+
+      // Successfully parsed MusicXML
+      showUploadStatus(`Successfully loaded: ${fileName}`, "success");
+
+      // Store the XML content for later conversion
+      window.uploadedMusicXML = {
+        content: xmlContent,
+        fileName: fileName,
+        xmlDoc: xmlDoc
+      };
+
+      console.log("MusicXML file loaded successfully:", fileName);
+
+      // TODO: Convert MusicXML to exercise format
+      // This will be implemented in the next step
+
+    } catch (error) {
+      console.error("Error processing MusicXML:", error);
+      showUploadStatus("Error processing MusicXML file.", "error");
+    }
+  }
+
+  function showUploadStatus(message, type) {
+    uploadStatus.textContent = message;
+    uploadStatus.className = `upload-status ${type}`;
+  }
+}
+
+// Initialize upload functionality
+setupMusicXMLUpload();
 </script>
 </body>
 </html>
