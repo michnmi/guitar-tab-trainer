@@ -1890,10 +1890,36 @@ function setupMusicXMLUpload() {
         return null;
       }
 
-      // Get work title if available
-      const workElement = xmlDoc.getElementsByTagName("work-title")[0];
-      const movementTitle = xmlDoc.getElementsByTagName("movement-title")[0];
-      const title = workElement?.textContent || movementTitle?.textContent || fileName.replace(/\.[^/.]+$/, "");
+      // Get title from various possible sources (in order of preference)
+      let title = fileName.replace(/\.[^/.]+$/, ""); // Default to filename
+
+      // First check credit-words (often contains the actual title)
+      const creditWords = xmlDoc.getElementsByTagName("credit-words");
+      for (let i = 0; i < creditWords.length; i++) {
+        const creditText = creditWords[i].textContent?.trim();
+        if (creditText &&
+            creditText !== "Subtitle" &&
+            creditText !== "Composer / arranger" &&
+            creditText !== "Title" &&
+            creditText.length > 3) {
+          title = creditText;
+          break;
+        }
+      }
+
+      // Fallback to work-title or movement-title if no good credit-words found
+      if (!title || title === fileName.replace(/\.[^/.]+$/, "")) {
+        const workElement = xmlDoc.getElementsByTagName("work-title")[0];
+        const movementTitle = xmlDoc.getElementsByTagName("movement-title")[0];
+        const workTitle = workElement?.textContent?.trim();
+        const moveTitle = movementTitle?.textContent?.trim();
+
+        if (workTitle && workTitle !== "Untitled score" && workTitle !== "") {
+          title = workTitle;
+        } else if (moveTitle && moveTitle !== "") {
+          title = moveTitle;
+        }
+      }
 
       // Get tempo (default to 120 if not found)
       let bpm = 120;
