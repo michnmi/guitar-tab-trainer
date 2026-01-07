@@ -1860,8 +1860,12 @@ function setupMusicXMLUpload() {
 
       console.log("MusicXML file loaded successfully:", fileName);
 
-      // TODO: Convert MusicXML to exercise format
-      // This will be implemented in the next step
+      // Convert MusicXML to exercise format
+      const exercise = convertMusicXMLToExercise(xmlDoc, fileName);
+      if (exercise) {
+        addExerciseToList(exercise);
+        showUploadStatus(`Successfully converted: ${fileName} (${exercise.notes.length} notes)`, "success");
+      }
 
     } catch (error) {
       console.error("Error processing MusicXML:", error);
@@ -1872,6 +1876,154 @@ function setupMusicXMLUpload() {
   function showUploadStatus(message, type) {
     uploadStatus.textContent = message;
     uploadStatus.className = `upload-status ${type}`;
+  }
+
+  function convertMusicXMLToExercise(xmlDoc, fileName) {
+    try {
+      // Extract basic info
+      const scorePartwise = xmlDoc.getElementsByTagName("score-partwise")[0];
+      const scoreTimewise = xmlDoc.getElementsByTagName("score-timewise")[0];
+      const rootElement = scorePartwise || scoreTimewise;
+
+      if (!rootElement) {
+        showUploadStatus("Invalid MusicXML structure", "error");
+        return null;
+      }
+
+      // Get work title if available
+      const workElement = xmlDoc.getElementsByTagName("work-title")[0];
+      const movementTitle = xmlDoc.getElementsByTagName("movement-title")[0];
+      const title = workElement?.textContent || movementTitle?.textContent || fileName.replace(/\.[^/.]+$/, "");
+
+      // Get tempo (default to 120 if not found)
+      let bpm = 120;
+      const tempoElements = xmlDoc.getElementsByTagName("per-minute");
+      if (tempoElements.length > 0) {
+        bpm = parseInt(tempoElements[0].textContent) || 120;
+      }
+
+      // Extract notes
+      const notes = [];
+      let currentBeat = 0;
+
+      // Get all measures
+      const measures = xmlDoc.getElementsByTagName("measure");
+
+      for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
+        const measure = measures[measureIndex];
+        const noteElements = measure.getElementsByTagName("note");
+
+        for (let noteIndex = 0; noteIndex < noteElements.length; noteIndex++) {
+          const noteElement = noteElements[noteIndex];
+
+          // Skip rests
+          if (noteElement.getElementsByTagName("rest").length > 0) {
+            // Still need to advance timing for rests
+            const duration = getDuration(noteElement);
+            currentBeat += duration;
+            continue;
+          }
+
+          // Skip chord tones (keep only the first note of chords)
+          if (noteElement.getElementsByTagName("chord").length > 0) {
+            continue;
+          }
+
+          // Get pitch
+          const pitch = noteElement.getElementsByTagName("pitch")[0];
+          if (!pitch) continue;
+
+          const step = pitch.getElementsByTagName("step")[0]?.textContent;
+          const alter = pitch.getElementsByTagName("alter")[0]?.textContent;
+          const octave = pitch.getElementsByTagName("octave")[0]?.textContent;
+
+          if (!step || !octave) continue;
+
+          // Convert to MIDI note number
+          const midiNote = pitchToMIDI(step, alter ? parseInt(alter) : 0, parseInt(octave));
+
+          // Filter to guitar range (MIDI 40-84, E2 to C6)
+          if (midiNote >= 40 && midiNote <= 84) {
+            notes.push({
+              beat: Math.round(currentBeat * 4) / 4, // Round to nearest quarter beat
+              midi: midiNote
+            });
+          }
+
+          // Advance timing
+          const duration = getDuration(noteElement);
+          currentBeat += duration;
+        }
+      }
+
+      // Create exercise object
+      const exercise = {
+        name: title,
+        description: `Converted from ${fileName}`,
+        bpm: Math.min(Math.max(bpm, 40), 200), // Clamp between 40-200
+        difficulty: notes.length > 30 ? "intermediate" : "beginner",
+        notes: notes,
+        isUploaded: true // Mark as uploaded to distinguish from built-in exercises
+      };
+
+      console.log("Converted exercise:", exercise);
+      return exercise;
+
+    } catch (error) {
+      console.error("Error converting MusicXML to exercise:", error);
+      showUploadStatus("Error converting MusicXML to exercise format", "error");
+      return null;
+    }
+  }
+
+  function getDuration(noteElement) {
+    // Get duration in quarter notes (simplified)
+    const durationElement = noteElement.getElementsByTagName("duration")[0];
+    const typeElement = noteElement.getElementsByTagName("type")[0];
+
+    if (durationElement) {
+      // Duration is in divisions of a quarter note
+      const duration = parseInt(durationElement.textContent);
+      const divisions = 1; // Simplified - should get from attributes
+      return duration / divisions / 4; // Convert to beats
+    }
+
+    if (typeElement) {
+      const type = typeElement.textContent;
+      const durations = {
+        'whole': 4,
+        'half': 2,
+        'quarter': 1,
+        'eighth': 0.5,
+        '16th': 0.25,
+        '32nd': 0.125
+      };
+      return durations[type] || 1;
+    }
+
+    return 1; // Default to quarter note
+  }
+
+  function pitchToMIDI(step, alter, octave) {
+    // Convert note name to MIDI number
+    const noteValues = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+    const baseNote = noteValues[step];
+    return (octave + 1) * 12 + baseNote + (alter || 0);
+  }
+
+  function addExerciseToList(exercise) {
+    // Add to available exercises array
+    availableExercises.push(exercise);
+
+    // Update the dropdown
+    populateExerciseDropdown();
+
+    // Automatically select the new exercise
+    const exerciseSelect = $("exercise");
+    exerciseSelect.value = exercise.name;
+
+    // Load the exercise
+    loadExercise(exercise);
   }
 }
 
