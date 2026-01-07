@@ -11,6 +11,7 @@ Play along with animated guitar tablature that moves across your screen in real-
 - 📊 **Detailed Scoring**: Track hits, misses, and skipped notes with accuracy percentage
 - 🎤 **Live Audio Detection**: Real-time pitch detection with octave correction
 - 🥁 **Built-in Metronome**: Helps maintain steady rhythm during practice
+- 📁 **MusicXML Import**: Upload your own .mxl/.xml/.musicxml files for instant practice
 
 No plugins. No native apps. Just your browser and a microphone.
 
@@ -29,6 +30,7 @@ No plugins. No native apps. Just your browser and a microphone.
 - **Three-category scoring**: Hits ✓, Misses ✗, Skipped ⊝
 - **Smart detection**: Distinguishes wrong notes vs. no input
 - **Real-time accuracy**: Live percentage calculation with score tracking
+- **Visual feedback**: Hit zone line glows green (hit), red (wrong note), or yellow (missed)
 
 ### 🎵 **Audio Engine**
 - **YIN pitch detection**: Robust monophonic note detection
@@ -55,16 +57,23 @@ No plugins. No native apps. Just your browser and a microphone.
 1. **Setup**:
    - Click "Enable Mic" and allow microphone access
    - Put on headphones (prevents metronome feedback)
-   - Select an exercise from the dropdown
+   - Select an exercise from the dropdown OR upload your own MusicXML file
    - Adjust BPM as needed (slower = easier)
 
-2. **Playing**:
+2. **Upload MusicXML (Optional)**:
+   - Drag and drop a .mxl, .xml, or .musicxml file onto the upload area
+   - Or click to browse and select a file
+   - The file will automatically convert and load as a new exercise
+   - Supports files from MuseScore, Sibelius, Finale, and other notation software
+
+3. **Playing**:
    - Click "Start" to begin
    - Watch rectangular notes move from right to left across the fretboard
    - Play the correct fret when the left edge of each note reaches the green line
    - Note width shows how long to sustain each note
+   - The green feedback line changes color: green (hit), red (wrong note), yellow (missed)
 
-3. **Scoring**:
+4. **Scoring**:
    - **✓ Hit**: Correct note played at the right time
    - **✗ Miss**: Wrong note played during timing window
    - **⊝ Skip**: No note played when timing window expired
@@ -137,7 +146,22 @@ docker run --rm -p 8080:8080 guitar-tab-trainer
 - **Simple Melody**: Frets 0-3 melodic patterns
 - **House of the Rising Sun**: Classic fingerpicking exercise
 
+### **Import Your Own Music**
+Upload MusicXML files from your favorite notation software:
+- **MuseScore**: Export as .mxl (compressed MusicXML)
+- **Sibelius**: Export as MusicXML
+- **Finale**: Export as MusicXML
+- **Guitar Pro**: Export as MusicXML (if supported)
+- **Online sources**: Many sheet music sites provide MusicXML downloads
+
 ### **Creating Custom Exercises**
+
+**Option 1: Upload MusicXML (Recommended)**
+- Export from any notation software as .mxl, .xml, or .musicxml
+- Drag and drop onto the upload area
+- Automatic conversion with smart title extraction
+
+**Option 2: Manual JSON Creation**
 Create JSON files in `/web/exercises/` directory:
 
 ```json

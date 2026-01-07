@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tab Trainer (Monophonic)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
     h1 { margin: 0 0 12px 0; }
@@ -14,6 +15,34 @@
     .big { font-size: 20px; font-weight: 650; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     label { display:block; font-size: 12px; opacity: 0.75; margin-bottom: 6px; }
+
+    /* File upload styles */
+    .upload-section {
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      text-align: center;
+      background: #f9f9f9;
+      transition: all 0.2s ease;
+    }
+    .upload-section.dragover {
+      border-color: #007bff;
+      background: #e6f3ff;
+    }
+    .upload-section input[type="file"] {
+      margin: 8px 0;
+    }
+    .upload-status {
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .upload-status.success {
+      color: #1a7f37;
+    }
+    .upload-status.error {
+      color: #b42318;
+    }
 
     .notes { display:flex; gap:10px; flex-wrap: wrap; }
     .note {
@@ -261,6 +290,16 @@
           <select id="exercise">
             <option value="">Loading exercises...</option>
           </select>
+        </div>
+      </div>
+
+      <!-- MusicXML Upload -->
+      <div style="min-width:300px;">
+        <label>Upload MusicXML File</label>
+        <div class="upload-section" id="uploadSection">
+          <div>Drop a MusicXML file here or</div>
+          <input type="file" id="musicxmlFile" accept=".mxl,.xml,.musicxml" />
+          <div class="upload-status" id="uploadStatus"></div>
         </div>
       </div>
 
@@ -992,7 +1031,9 @@ function judgeMisses(beatNow) {
           // Wrong note was played
           ev.miss = true;
           state.failCount++;
-          // Don't show feedback - misses happen outside timing windows
+
+          // Show miss feedback on hit zone
+          showHitZoneFeedback(false, false);
 
           // Debug log for missed notes
           addDebugEntry(`❌ MISS: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but wrong note was played during timing window`);
@@ -1000,7 +1041,9 @@ function judgeMisses(beatNow) {
           // No input at all - note was skipped
           ev.skipped = true;
           state.skippedCount++;
-          // Don't show feedback - skips happen outside timing windows
+
+          // Show skip feedback on hit zone
+          showHitZoneFeedback(false, true);
 
           // Debug log for skipped notes
           addDebugEntry(`⊝ SKIP: Expected ${midiToName(ev.midi)} at beat ${ev.beat.toFixed(2)}, but no input detected during timing window`);
@@ -1659,6 +1702,363 @@ $("clearHistory").addEventListener("click", clearPracticeHistory);
 window.addEventListener('resize', () => {
   calculateTravelDistance();
 });
+
+// MusicXML Upload functionality
+function setupMusicXMLUpload() {
+  const uploadSection = $("uploadSection");
+  const fileInput = $("musicxmlFile");
+  const uploadStatus = $("uploadStatus");
+
+  // Handle file input change
+  fileInput.addEventListener("change", handleFileUpload);
+
+  // Handle drag and drop
+  uploadSection.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    uploadSection.classList.add("dragover");
+  });
+
+  uploadSection.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    uploadSection.classList.remove("dragover");
+  });
+
+  uploadSection.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadSection.classList.remove("dragover");
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFile(files[0]);
+    }
+  });
+
+  function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+      handleFile(file);
+    }
+  }
+
+  function handleFile(file) {
+    // Validate file type
+    const validExtensions = ['.mxl', '.xml', '.musicxml'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    if (!validExtensions.includes(fileExtension)) {
+      showUploadStatus("Please select a MusicXML file (.mxl, .xml, or .musicxml)", "error");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showUploadStatus("File is too large. Please select a file smaller than 5MB.", "error");
+      return;
+    }
+
+    showUploadStatus("Reading file...", "");
+
+    // Check if it's a compressed .mxl file
+    if (fileExtension === '.mxl') {
+      // Read as binary for ZIP extraction
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          extractMXLFile(e.target.result, file.name);
+        } catch (error) {
+          console.error("Error reading MXL file:", error);
+          showUploadStatus("Error reading MXL file. Please try again.", "error");
+        }
+      };
+
+      reader.onerror = function() {
+        showUploadStatus("Error reading MXL file. Please try again.", "error");
+      };
+
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Read as text for XML files
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const xmlContent = e.target.result;
+          processMusicXMLFile(xmlContent, file.name);
+        } catch (error) {
+          console.error("Error reading file:", error);
+          showUploadStatus("Error reading file. Please try again.", "error");
+        }
+      };
+
+      reader.onerror = function() {
+        showUploadStatus("Error reading file. Please try again.", "error");
+      };
+
+      reader.readAsText(file);
+    }
+  }
+
+  function extractMXLFile(arrayBuffer, fileName) {
+    try {
+      showUploadStatus("Extracting MXL file...", "");
+
+      // Use JSZip to properly extract the MXL file
+      JSZip.loadAsync(arrayBuffer).then(function(zip) {
+        // Look for score.xml in the ZIP
+        const scoreFile = zip.file("score.xml");
+
+        if (!scoreFile) {
+          showUploadStatus("Could not find score.xml in MXL file.", "error");
+          return;
+        }
+
+        // Extract the score.xml content
+        scoreFile.async("text").then(function(xmlContent) {
+          processMusicXMLFile(xmlContent, fileName);
+        }).catch(function(error) {
+          console.error("Error reading score.xml:", error);
+          showUploadStatus("Error reading score.xml from MXL file.", "error");
+        });
+
+      }).catch(function(error) {
+        console.error("Error extracting MXL file:", error);
+        showUploadStatus("Invalid MXL file format. Please check the file.", "error");
+      });
+
+    } catch (error) {
+      console.error("Error processing MXL file:", error);
+      showUploadStatus("Error processing MXL file. Please try a different file.", "error");
+    }
+  }
+
+  function processMusicXMLFile(xmlContent, fileName) {
+    try {
+      // Basic validation - check if it's valid XML and contains MusicXML elements
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+
+      // Check for XML parsing errors
+      const parseError = xmlDoc.getElementsByTagName("parsererror");
+      if (parseError.length > 0) {
+        showUploadStatus("Invalid XML file. Please check the file format.", "error");
+        return;
+      }
+
+      // Check for MusicXML root elements
+      const scorePartwise = xmlDoc.getElementsByTagName("score-partwise")[0];
+      const scoreTimewise = xmlDoc.getElementsByTagName("score-timewise")[0];
+
+      if (!scorePartwise && !scoreTimewise) {
+        showUploadStatus("This doesn't appear to be a valid MusicXML file.", "error");
+        return;
+      }
+
+      // Successfully parsed MusicXML
+      showUploadStatus(`Successfully loaded: ${fileName}`, "success");
+
+      // Store the XML content for later conversion
+      window.uploadedMusicXML = {
+        content: xmlContent,
+        fileName: fileName,
+        xmlDoc: xmlDoc
+      };
+
+      console.log("MusicXML file loaded successfully:", fileName);
+
+      // Convert MusicXML to exercise format
+      const exercise = convertMusicXMLToExercise(xmlDoc, fileName);
+      if (exercise) {
+        addExerciseToList(exercise);
+        showUploadStatus(`Successfully converted: ${fileName} (${exercise.notes.length} notes)`, "success");
+      }
+
+    } catch (error) {
+      console.error("Error processing MusicXML:", error);
+      showUploadStatus("Error processing MusicXML file.", "error");
+    }
+  }
+
+  function showUploadStatus(message, type) {
+    uploadStatus.textContent = message;
+    uploadStatus.className = `upload-status ${type}`;
+  }
+
+  function convertMusicXMLToExercise(xmlDoc, fileName) {
+    try {
+      // Extract basic info
+      const scorePartwise = xmlDoc.getElementsByTagName("score-partwise")[0];
+      const scoreTimewise = xmlDoc.getElementsByTagName("score-timewise")[0];
+      const rootElement = scorePartwise || scoreTimewise;
+
+      if (!rootElement) {
+        showUploadStatus("Invalid MusicXML structure", "error");
+        return null;
+      }
+
+      // Get title from various possible sources (in order of preference)
+      let title = fileName.replace(/\.[^/.]+$/, ""); // Default to filename
+
+      // First check credit-words (often contains the actual title)
+      const creditWords = xmlDoc.getElementsByTagName("credit-words");
+      for (let i = 0; i < creditWords.length; i++) {
+        const creditText = creditWords[i].textContent?.trim();
+        if (creditText &&
+            creditText !== "Subtitle" &&
+            creditText !== "Composer / arranger" &&
+            creditText !== "Title" &&
+            creditText.length > 3) {
+          title = creditText;
+          break;
+        }
+      }
+
+      // Fallback to work-title or movement-title if no good credit-words found
+      if (!title || title === fileName.replace(/\.[^/.]+$/, "")) {
+        const workElement = xmlDoc.getElementsByTagName("work-title")[0];
+        const movementTitle = xmlDoc.getElementsByTagName("movement-title")[0];
+        const workTitle = workElement?.textContent?.trim();
+        const moveTitle = movementTitle?.textContent?.trim();
+
+        if (workTitle && workTitle !== "Untitled score" && workTitle !== "") {
+          title = workTitle;
+        } else if (moveTitle && moveTitle !== "") {
+          title = moveTitle;
+        }
+      }
+
+      // Get tempo (default to 120 if not found)
+      let bpm = 120;
+      const tempoElements = xmlDoc.getElementsByTagName("per-minute");
+      if (tempoElements.length > 0) {
+        bpm = parseInt(tempoElements[0].textContent) || 120;
+      }
+
+      // Extract notes
+      const notes = [];
+      let currentBeat = 0;
+
+      // Get all measures
+      const measures = xmlDoc.getElementsByTagName("measure");
+
+      for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
+        const measure = measures[measureIndex];
+        const noteElements = measure.getElementsByTagName("note");
+
+        for (let noteIndex = 0; noteIndex < noteElements.length; noteIndex++) {
+          const noteElement = noteElements[noteIndex];
+
+          // Skip rests
+          if (noteElement.getElementsByTagName("rest").length > 0) {
+            // Still need to advance timing for rests
+            const duration = getDuration(noteElement);
+            currentBeat += duration;
+            continue;
+          }
+
+          // Skip chord tones (keep only the first note of chords)
+          if (noteElement.getElementsByTagName("chord").length > 0) {
+            continue;
+          }
+
+          // Get pitch
+          const pitch = noteElement.getElementsByTagName("pitch")[0];
+          if (!pitch) continue;
+
+          const step = pitch.getElementsByTagName("step")[0]?.textContent;
+          const alter = pitch.getElementsByTagName("alter")[0]?.textContent;
+          const octave = pitch.getElementsByTagName("octave")[0]?.textContent;
+
+          if (!step || !octave) continue;
+
+          // Convert to MIDI note number
+          const midiNote = pitchToMIDI(step, alter ? parseInt(alter) : 0, parseInt(octave));
+
+          // Filter to guitar range (MIDI 40-84, E2 to C6)
+          if (midiNote >= 40 && midiNote <= 84) {
+            notes.push({
+              beat: Math.round(currentBeat * 4) / 4, // Round to nearest quarter beat
+              midi: midiNote
+            });
+          }
+
+          // Advance timing
+          const duration = getDuration(noteElement);
+          currentBeat += duration;
+        }
+      }
+
+      // Create exercise object
+      const exercise = {
+        name: title,
+        description: `Converted from ${fileName}`,
+        bpm: Math.min(Math.max(bpm, 40), 200), // Clamp between 40-200
+        difficulty: notes.length > 30 ? "intermediate" : "beginner",
+        notes: notes,
+        isUploaded: true // Mark as uploaded to distinguish from built-in exercises
+      };
+
+      console.log("Converted exercise:", exercise);
+      return exercise;
+
+    } catch (error) {
+      console.error("Error converting MusicXML to exercise:", error);
+      showUploadStatus("Error converting MusicXML to exercise format", "error");
+      return null;
+    }
+  }
+
+  function getDuration(noteElement) {
+    // Get duration in quarter notes (simplified)
+    const durationElement = noteElement.getElementsByTagName("duration")[0];
+    const typeElement = noteElement.getElementsByTagName("type")[0];
+
+    if (durationElement) {
+      // Duration is in divisions of a quarter note
+      const duration = parseInt(durationElement.textContent);
+      const divisions = 1; // Simplified - should get from attributes
+      return duration / divisions / 4; // Convert to beats
+    }
+
+    if (typeElement) {
+      const type = typeElement.textContent;
+      const durations = {
+        'whole': 4,
+        'half': 2,
+        'quarter': 1,
+        'eighth': 0.5,
+        '16th': 0.25,
+        '32nd': 0.125
+      };
+      return durations[type] || 1;
+    }
+
+    return 1; // Default to quarter note
+  }
+
+  function pitchToMIDI(step, alter, octave) {
+    // Convert note name to MIDI number
+    const noteValues = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
+    const baseNote = noteValues[step];
+    return (octave + 1) * 12 + baseNote + (alter || 0);
+  }
+
+  function addExerciseToList(exercise) {
+    // Add to available exercises array
+    availableExercises.push(exercise);
+
+    // Update the dropdown
+    populateExerciseDropdown();
+
+    // Automatically select the new exercise
+    const exerciseSelect = $("exercise");
+    exerciseSelect.value = exercise.name;
+
+    // Load the exercise
+    loadExercise(exercise);
+  }
+}
+
+// Initialize upload functionality
+setupMusicXMLUpload();
 </script>
 </body>
 </html>
