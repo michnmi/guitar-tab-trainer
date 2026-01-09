@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tab Trainer (Monophonic)</title>
+  <title>CLAUDE VERSION 2.0 - Tab Trainer</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
@@ -355,6 +355,26 @@
         </div>
       </div>
 
+      <!-- FFT Chord Calibration -->
+      <div style="min-width:200px;">
+        <label for="fftThreshold">FFT Energy Threshold (dB)</label>
+        <div class="row" style="gap:10px;">
+          <input id="fftThreshold" type="range" min="-60" max="-20" value="-40" step="1" />
+          <input id="fftThresholdNum" type="number" min="-60" max="-20" value="-40" step="1" style="width:70px;" />
+        </div>
+        <div style="margin-top:6px;">
+          <label class="mono" style="display:flex; gap:6px; align-items:center; font-size:12px; margin-bottom:4px;">
+            <input id="adaptiveCalibration" type="checkbox" checked />
+            Auto-calibrate threshold
+          </label>
+          <button id="resetCalibration" style="font-size:11px; padding:4px 8px; margin-bottom:4px;">Reset Learning</button>
+          <div class="mono" style="font-size:11px; opacity:0.7;">
+            Auto adjusts for your mic and playing style
+          </div>
+          <div id="fftStatus" class="mono" style="font-size:12px; margin-top:4px;">—</div>
+        </div>
+      </div>
+
       <!-- Microphone Status -->
       <div style="min-width:180px;">
         <div id="micStatus" class="mono" style="margin-bottom:6px;">Not enabled</div>
@@ -370,8 +390,62 @@
         </div>
         <div id="now" class="mono" style="font-size:12px;">—</div>
       </div>
+
+      <!-- Calibration Button -->
+      <div style="min-width:140px;">
+        <button id="btnCalibrate" style="font-size:16px; padding:12px; width:100%; margin-bottom:8px; background:#0066cc; color:white;">
+          🎸 Calibrate Hardware
+        </button>
+        <div id="calibrationStatus" class="mono" style="font-size:11px; text-align:center;">
+          Not calibrated
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- Calibration Modal -->
+  <div id="calibrationModal" class="panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000; background:white; border:2px solid #007bff; box-shadow:0 4px 20px rgba(0,0,0,0.3); width:90%; max-width:500px;">
+    <div style="text-align:center; padding:20px;">
+      <h2 style="margin:0 0 16px 0; color:#007bff;">🎸 Hardware Calibration</h2>
+      <p style="margin:0 0 20px 0; font-size:14px; line-height:1.4;">
+        Play each open string clearly when prompted. This calibrates the detection system for your specific microphone and guitar.
+      </p>
+
+      <div id="calibrationStep" style="margin:20px 0;">
+        <div id="calibrationInstruction" style="font-size:18px; font-weight:bold; margin-bottom:12px;">
+          Ready to start calibration
+        </div>
+        <div id="calibrationProgress" style="background:#f0f0f0; border-radius:10px; height:20px; margin:12px 0;">
+          <div id="calibrationProgressBar" style="background:#007bff; height:100%; border-radius:10px; width:0%; transition:width 0.3s;"></div>
+        </div>
+        <div id="calibrationDetails" class="mono" style="font-size:12px; color:#666;">
+          6 strings to calibrate: E(6) - A(5) - D(4) - G(3) - B(2) - E(1)
+        </div>
+      </div>
+
+      <div id="calibrationResults" style="display:none; margin:20px 0; padding:16px; background:#f8f9fa; border-radius:8px;">
+        <h4 style="margin:0 0 12px 0;">Calibration Results</h4>
+        <div id="calibrationSummary" class="mono" style="font-size:12px;">
+          <!-- Results will be populated here -->
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button id="startCalibration" style="font-size:16px; padding:10px 20px; margin-right:10px; background:#1a7f37; color:white;">
+          Start Calibration
+        </button>
+        <button id="skipCalibration" style="font-size:16px; padding:10px 20px; margin-right:10px;">
+          Skip (Use Defaults)
+        </button>
+        <button id="closeCalibration" style="font-size:16px; padding:10px 20px;" disabled>
+          Continue to Practice
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calibration Overlay -->
+  <div id="calibrationOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;"></div>
 
   <!-- Main Fretboard Display -->
   <div class="panel" style="width: 100%; margin-bottom: 12px;">
@@ -603,6 +677,9 @@ function midiToName(midi) {
 function freqToMidi(freq) {
   return 69 + 12 * Math.log2(freq / 440);
 }
+function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
 function centsDiff(midiFloat, midiInt) {
   return (midiFloat - midiInt) * 100;
 }
@@ -713,6 +790,231 @@ function yinPitch(buffer, sampleRate) {
   const freq = sampleRate / betterTau;
   const conf = Math.max(0, Math.min(1, 1 - cmndf[tauEstimate]));
   return { freq, conf, rms };
+}
+
+/**
+ * -------------------------
+ * FFT Chord Detection (Polyphonic)
+ * -------------------------
+ */
+function detectChord(analyser, targetNotes, sampleRate) {
+  try {
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Float32Array(bufferLength);
+    analyser.getFloatFrequencyData(dataArray);
+
+    // Calculate frequency resolution (Hz per bin)
+    const nyquist = sampleRate / 2;
+    const freqPerBin = nyquist / bufferLength;
+
+    // Energy threshold for detection (in dB) - more aggressive for chords
+    let ENERGY_THRESHOLD;
+    if (state.hardwareCalibration.isCalibrated && state.hardwareCalibration.quality > 0.3) {
+      ENERGY_THRESHOLD = state.hardwareCalibration.optimalThreshold;
+    } else if (state.adaptiveCalibration.enabled && state.adaptiveCalibration.confidence > 0.3) {
+      ENERGY_THRESHOLD = state.adaptiveCalibration.adaptiveThreshold;
+    } else {
+      ENERGY_THRESHOLD = parseFloat($("fftThreshold").value || -40);
+    }
+
+    // Extremely aggressive threshold for chord detection - detect very weak signals
+    ENERGY_THRESHOLD = ENERGY_THRESHOLD - 50; // 50dB more sensitive for chords
+
+    console.log("🎵 FFT DEBUG: Energy threshold:", ENERGY_THRESHOLD, "dB");
+
+    let detectedCount = 0;
+    const detectedNotes = [];
+
+    // Quick exit if no notes to detect
+    if (!targetNotes || targetNotes.length === 0) {
+      return {
+        success: false,
+        detectedCount: 0,
+        requiredCount: 0,
+        detectedNotes: [],
+        confidence: 0,
+        majorityThreshold: 0
+      };
+    }
+
+    for (const noteData of targetNotes) {
+      try {
+        const targetMidi = noteData.midi;
+        const fundamentalFreq = midiToFreq(targetMidi);
+        const harmonicFreq = fundamentalFreq * 2; // 2nd harmonic for low frequency handling
+
+        // Find corresponding FFT bins with wider search window
+        const fundamentalBin = Math.round(fundamentalFreq / freqPerBin);
+        const harmonicBin = Math.round(harmonicFreq / freqPerBin);
+
+        // Check if bins are within valid range
+        const fundamentalInRange = fundamentalBin >= 0 && fundamentalBin < bufferLength;
+        const harmonicInRange = harmonicBin >= 0 && harmonicBin < bufferLength;
+
+        let fundamentalEnergy = -Infinity;
+        let harmonicEnergy = -Infinity;
+
+        // Get energy from fundamental frequency (with wider tolerance)
+        if (fundamentalInRange) {
+          const startBin = Math.max(0, fundamentalBin - 2); // Wider search window
+          const endBin = Math.min(bufferLength - 1, fundamentalBin + 2);
+          for (let i = startBin; i <= endBin; i++) {
+            if (i < dataArray.length) {
+              fundamentalEnergy = Math.max(fundamentalEnergy, dataArray[i]);
+            }
+          }
+        }
+
+        // Get energy from 2nd harmonic (for low-frequency handling)
+        if (harmonicInRange) {
+          const startBin = Math.max(0, harmonicBin - 2); // Wider search window
+          const endBin = Math.min(bufferLength - 1, harmonicBin + 2);
+          for (let i = startBin; i <= endBin; i++) {
+            if (i < dataArray.length) {
+              harmonicEnergy = Math.max(harmonicEnergy, dataArray[i]);
+            }
+          }
+        }
+
+        // Note is detected if either fundamental OR harmonic is above threshold
+        const detected = fundamentalEnergy > ENERGY_THRESHOLD || harmonicEnergy > ENERGY_THRESHOLD;
+
+        console.log(`🎵 FFT DEBUG: Note ${midiToName(targetMidi)} (${fundamentalFreq.toFixed(1)}Hz) - Fundamental: ${fundamentalEnergy.toFixed(1)}dB, Harmonic: ${harmonicEnergy.toFixed(1)}dB, Threshold: ${ENERGY_THRESHOLD.toFixed(1)}dB, Detected: ${detected}`);
+
+        if (detected) {
+          detectedCount++;
+          detectedNotes.push({
+            midi: targetMidi,
+            freq: fundamentalFreq,
+            fundamentalEnergy,
+            harmonicEnergy,
+            usedHarmonic: harmonicEnergy > fundamentalEnergy
+          });
+        }
+      } catch (noteError) {
+        console.warn("Error processing note in chord detection:", noteError);
+        // Continue processing other notes
+      }
+    }
+
+    // Much more lenient success criteria - any single chord tone counts as success
+    const minimumThreshold = 1; // Any single chord tone is enough
+    const strongThreshold = Math.max(2, Math.ceil(targetNotes.length * 0.5)); // 50% for strong detection
+    const anyDetected = detectedCount >= minimumThreshold;
+
+    console.log(`🎵 FFT DEBUG: Detected ${detectedCount}/${targetNotes.length} chord tones (need ${minimumThreshold}+), success: ${anyDetected}`);
+
+    return {
+      success: anyDetected,
+      detectedCount,
+      requiredCount: targetNotes.length,
+      detectedNotes,
+      confidence: detectedCount / targetNotes.length, // 0.0 to 1.0
+      majorityThreshold: minimumThreshold,
+      isStrong: detectedCount >= strongThreshold
+    };
+
+  } catch (error) {
+    console.error("FFT chord detection error:", error);
+    // Return safe fallback
+    return {
+      success: false,
+      detectedCount: 0,
+      requiredCount: targetNotes ? targetNotes.length : 0,
+      detectedNotes: [],
+      confidence: 0,
+      majorityThreshold: 0,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * -------------------------
+ * Hybrid Detection System
+ * -------------------------
+ */
+function hybridDetection(analyser, timeDomainBuffer, sampleRate, expectedEvent) {
+  try {
+    // Enhanced hybrid detection with safety checks
+    if (!expectedEvent) {
+      // No expected notes, fall back to YIN
+      console.log("🔍 HYBRID DEBUG: No expected event, using YIN");
+      const yinResult = yinPitch(timeDomainBuffer, sampleRate);
+      return { method: 'yin', result: yinResult };
+    }
+
+    // Debug log the expected event structure
+    console.log("🔍 HYBRID DEBUG: Expected event:", {
+      type: expectedEvent ? expectedEvent.type : 'null',
+      hasNotes: expectedEvent ? !!expectedEvent.notes : false,
+      notesLength: expectedEvent && expectedEvent.notes ? expectedEvent.notes.length : 0,
+      beat: expectedEvent ? expectedEvent.beat : 'null',
+      midi: expectedEvent ? expectedEvent.midi : 'null'
+    });
+
+    if (expectedEvent.type === "chord" && expectedEvent.notes && expectedEvent.notes.length > 1) {
+      // Chord expected: use FFT detection with graceful fallback
+      console.log("🎵 HYBRID DEBUG: Using FFT for chord detection, target notes:", expectedEvent.notes.length);
+      try {
+        const chordResult = detectChord(analyser, expectedEvent.notes, sampleRate);
+        console.log("🎵 HYBRID DEBUG: FFT result:", chordResult);
+
+        // Always return FFT result, even if not successful - let the main logic decide
+        return { method: 'fft', result: chordResult };
+      } catch (fftError) {
+        console.warn("FFT chord detection failed, falling back to YIN:", fftError);
+        const yinResult = yinPitch(timeDomainBuffer, sampleRate);
+        return { method: 'yin-fallback', result: yinResult };
+      }
+    } else {
+      // Single note expected: use YIN for precision
+      console.log("🔍 HYBRID DEBUG: Using YIN for single note");
+      const yinResult = yinPitch(timeDomainBuffer, sampleRate);
+      return { method: 'yin', result: yinResult };
+    }
+  } catch (error) {
+    console.error("Hybrid detection error:", error);
+    // Ultimate fallback to ensure animation never stops
+    const yinResult = yinPitch(timeDomainBuffer, sampleRate);
+    return { method: 'yin-error-fallback', result: yinResult };
+  }
+}
+
+/**
+ * Helper function to get the current expected event based on timing window
+ */
+function getCurrentExpectedEvent(beatNow) {
+  const win = timingWindowBeats(state.bpm);
+  let closestEvent = null;
+  let closestDistance = Infinity;
+
+  for (const ev of state.events) {
+    if (ev.hit) continue; // Skip already hit notes
+
+    const distance = Math.abs(beatNow - ev.beat);
+    if (distance <= win && distance < closestDistance) {
+      closestDistance = distance;
+      closestEvent = ev;
+    }
+  }
+
+  // Debug log when we find an expected event (only for chords to reduce spam)
+  if (closestEvent && closestEvent.type === "chord") {
+    console.log("🎯 EXPECTED EVENT DEBUG:", {
+      beat: beatNow.toFixed(2),
+      window: win.toFixed(3),
+      foundEvent: {
+        type: closestEvent.type,
+        beat: closestEvent.beat,
+        midi: closestEvent.midi,
+        hasNotes: !!closestEvent.notes,
+        notesLength: closestEvent.notes ? closestEvent.notes.length : 0
+      }
+    });
+  }
+
+  return closestEvent;
 }
 
 /**
@@ -1410,6 +1712,431 @@ function metroTick(isDownbeat) {
 
 /**
  * -------------------------
+ * Adaptive Calibration System
+ * -------------------------
+ */
+function updateAdaptiveCalibration(analyser, rms, isPlaying) {
+  const cal = state.adaptiveCalibration;
+  if (!cal.enabled) return cal.adaptiveThreshold;
+
+  const now = performance.now();
+
+  // Get frequency domain data for energy analysis
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Float32Array(bufferLength);
+  analyser.getFloatFrequencyData(dataArray);
+
+  // Calculate average energy across frequency spectrum
+  let totalEnergy = 0;
+  let validBins = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    if (dataArray[i] > -100) { // Ignore extremely low values
+      totalEnergy += dataArray[i];
+      validBins++;
+    }
+  }
+  const avgEnergy = validBins > 0 ? totalEnergy / validBins : -60;
+
+  // Adaptive learning based on playing state
+  if (isPlaying && rms > 0.001) {
+    // Learning phase: user is playing
+    cal.activeSamples++;
+
+    // Update signal peak with exponential moving average
+    if (avgEnergy > cal.signalPeak || cal.activeSamples < 10) {
+      cal.signalPeak += cal.learningRate * (avgEnergy - cal.signalPeak);
+    }
+
+    // Reset silence counter
+    cal.silentSamples = 0;
+
+  } else if (rms < 0.001) {
+    // Silence phase: detecting noise floor
+    cal.silentSamples++;
+
+    if (cal.silentSamples > 10) { // Only after sustained silence
+      cal.noiseFloor += cal.learningRate * (avgEnergy - cal.noiseFloor);
+    }
+  }
+
+  // Calculate confidence based on sample count and signal separation
+  const totalSamples = cal.activeSamples + cal.silentSamples;
+  const sampleConfidence = Math.min(1, totalSamples / cal.minSamples);
+  const separationConfidence = Math.min(1, (cal.signalPeak - cal.noiseFloor) / 20); // 20dB = good separation
+  cal.confidence = sampleConfidence * separationConfidence;
+
+  // Calculate adaptive threshold (halfway between noise floor and signal peak, with safety margin)
+  const rawThreshold = cal.noiseFloor + (cal.signalPeak - cal.noiseFloor) * 0.3;
+
+  // Blend with manual threshold based on confidence
+  const manualThreshold = parseFloat($("fftThreshold").value || -40);
+  cal.adaptiveThreshold = (1 - cal.confidence) * manualThreshold + cal.confidence * rawThreshold;
+
+  // Clamp to reasonable bounds
+  cal.adaptiveThreshold = Math.max(-60, Math.min(-20, cal.adaptiveThreshold));
+
+  // Update UI every 1000ms
+  if (now - cal.lastUpdate > 1000) {
+    updateAdaptiveCalibrationUI();
+    cal.lastUpdate = now;
+  }
+
+  return cal.adaptiveThreshold;
+}
+
+function updateAdaptiveCalibrationUI() {
+  const cal = state.adaptiveCalibration;
+  if (!cal.enabled) return;
+
+  // Update threshold slider if in auto mode
+  if (cal.confidence > 0.3) {
+    const roundedThreshold = Math.round(cal.adaptiveThreshold);
+    if (Math.abs(parseFloat($("fftThreshold").value) - roundedThreshold) > 1) {
+      $("fftThreshold").value = roundedThreshold;
+      $("fftThresholdNum").value = roundedThreshold;
+    }
+  }
+
+  // Enhanced status display
+  const confidencePercent = Math.round(cal.confidence * 100);
+  const separation = cal.signalPeak - cal.noiseFloor;
+
+  let statusText = `Auto: ${cal.adaptiveThreshold.toFixed(1)}dB `;
+  statusText += `(${confidencePercent}% confident, ${separation.toFixed(1)}dB range)`;
+
+  // Color based on calibration quality
+  if (cal.confidence > 0.7 && separation > 15) {
+    $("fftStatus").style.color = "#1a7f37"; // Green: well calibrated
+  } else if (cal.confidence > 0.3) {
+    $("fftStatus").style.color = "#ff9900"; // Orange: learning
+  } else {
+    $("fftStatus").style.color = "#666"; // Gray: not enough data
+  }
+
+  // Only show auto status when not actively detecting
+  if (!state.practicing || $("fftStatus").textContent.includes("Threshold:")) {
+    $("fftStatus").textContent = statusText;
+  }
+}
+
+function resetAdaptiveCalibration() {
+  const cal = state.adaptiveCalibration;
+  cal.noiseFloor = -60;
+  cal.signalPeak = -20;
+  cal.adaptiveThreshold = -40;
+  cal.silentSamples = 0;
+  cal.activeSamples = 0;
+  cal.confidence = 0;
+  cal.lastUpdate = 0;
+  updateAdaptiveCalibrationUI();
+}
+
+/**
+ * -------------------------
+ * Hardware Calibration System (Open Strings)
+ * -------------------------
+ */
+
+const CALIBRATION_STRINGS = [
+  { name: "Low E (6th)", midi: 40, freq: 82.4 },
+  { name: "A (5th)", midi: 45, freq: 110.0 },
+  { name: "D (4th)", midi: 50, freq: 146.8 },
+  { name: "G (3rd)", midi: 55, freq: 196.0 },
+  { name: "B (2nd)", midi: 59, freq: 246.9 },
+  { name: "High E (1st)", midi: 64, freq: 329.6 }
+];
+
+function startHardwareCalibration() {
+  const cal = state.hardwareCalibration;
+  cal.isCalibrating = true;
+  cal.currentString = 0;
+  cal.stringData = [];
+  cal.quality = 0;
+
+  // Show modal
+  $("calibrationModal").style.display = "block";
+  $("calibrationOverlay").style.display = "block";
+  $("calibrationResults").style.display = "none";
+  $("closeCalibration").disabled = true;
+
+  // Start with noise floor measurement
+  updateCalibrationUI();
+  measureNoiseFloor();
+}
+
+function measureNoiseFloor() {
+  $("calibrationInstruction").textContent = "🔇 Measuring background noise...";
+  $("calibrationDetails").textContent = "Stay quiet for 3 seconds";
+  $("calibrationProgressBar").style.width = "8%";
+
+  let samples = [];
+  let sampleCount = 0;
+  const maxSamples = 60; // ~3 seconds at 20fps
+
+  const measureInterval = setInterval(() => {
+    if (!state.analyser) {
+      clearInterval(measureInterval);
+      return;
+    }
+
+    // Get frequency domain data
+    const bufferLength = state.analyser.frequencyBinCount;
+    const dataArray = new Float32Array(bufferLength);
+    state.analyser.getFloatFrequencyData(dataArray);
+
+    // Calculate average energy
+    let totalEnergy = 0;
+    let validBins = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      if (dataArray[i] > -100) {
+        totalEnergy += dataArray[i];
+        validBins++;
+      }
+    }
+    const avgEnergy = validBins > 0 ? totalEnergy / validBins : -60;
+    samples.push(avgEnergy);
+
+    sampleCount++;
+    const progress = 8 + (sampleCount / maxSamples) * 10; // 8-18%
+    $("calibrationProgressBar").style.width = `${progress}%`;
+
+    if (sampleCount >= maxSamples) {
+      clearInterval(measureInterval);
+
+      // Calculate noise floor (10th percentile for robustness)
+      samples.sort((a, b) => a - b);
+      state.hardwareCalibration.noiseFloor = samples[Math.floor(samples.length * 0.1)];
+
+      // Start string measurements
+      measureNextString();
+    }
+  }, 50); // 20fps
+}
+
+function measureNextString() {
+  const cal = state.hardwareCalibration;
+
+  if (cal.currentString >= CALIBRATION_STRINGS.length) {
+    finishCalibration();
+    return;
+  }
+
+  const stringInfo = CALIBRATION_STRINGS[cal.currentString];
+  const progress = 18 + (cal.currentString / CALIBRATION_STRINGS.length) * 72; // 18-90%
+
+  $("calibrationInstruction").textContent = `🎸 Play ${stringInfo.name} string`;
+  $("calibrationDetails").textContent = `Expected: ${stringInfo.freq ? stringInfo.freq.toFixed(1) : "--"}Hz (${midiToName(stringInfo.midi)}) - Strum clearly`;
+  $("calibrationProgressBar").style.width = `${progress}%`;
+
+  let samples = [];
+  let validSamples = 0;
+  const maxSamples = 100; // ~5 seconds at 20fps
+  let bestSignal = -100;
+
+  const measureInterval = setInterval(() => {
+    if (!state.analyser) {
+      clearInterval(measureInterval);
+      return;
+    }
+
+    // Get time domain for YIN and frequency domain for FFT
+    const timeBuf = new Float32Array(state.analyser.fftSize);
+    state.analyser.getFloatTimeDomainData(timeBuf);
+
+    const freqBuf = new Float32Array(state.analyser.frequencyBinCount);
+    state.analyser.getFloatFrequencyData(freqBuf);
+
+    // Use YIN to detect the played note
+    const pitchResult = yinPitch(timeBuf, state.audioCtx.sampleRate);
+
+    if (pitchResult.freq && pitchResult.conf > 0.5 && pitchResult.rms > 0.001) {
+      const detectedMidi = freqToMidi(pitchResult.freq);
+      const expectedMidi = stringInfo.midi;
+      const semitonesDiff = Math.abs(detectedMidi - expectedMidi);
+
+      // Check if it matches the expected string (within 1 semitone)
+      if (semitonesDiff <= 1) {
+        // Calculate signal strength in frequency domain
+        const targetFreq = stringInfo.freq;
+        const nyquist = state.audioCtx.sampleRate / 2;
+        const freqPerBin = nyquist / freqBuf.length;
+        const targetBin = Math.round(targetFreq / freqPerBin);
+
+        let peakEnergy = -100;
+        for (let i = Math.max(0, targetBin - 2); i <= Math.min(freqBuf.length - 1, targetBin + 2); i++) {
+          peakEnergy = Math.max(peakEnergy, freqBuf[i]);
+        }
+
+        samples.push({
+          energy: peakEnergy,
+          freq: pitchResult.freq,
+          conf: pitchResult.conf,
+          rms: pitchResult.rms
+        });
+
+        bestSignal = Math.max(bestSignal, peakEnergy);
+        validSamples++;
+
+        // Visual feedback
+        $("calibrationDetails").textContent = `✓ Detected: ${pitchResult.freq ? pitchResult.freq.toFixed(1) : "--"}Hz (${validSamples} samples) - Keep playing!`;
+      }
+    }
+
+    validSamples++;
+    if (validSamples >= maxSamples) {
+      clearInterval(measureInterval);
+
+      // Store string data
+      if (samples.length >= 5) { // Need at least 5 good samples
+        const avgEnergy = samples.reduce((sum, s) => sum + s.energy, 0) / samples.length;
+        const avgConf = samples.reduce((sum, s) => sum + s.conf, 0) / samples.length;
+
+        cal.stringData.push({
+          string: stringInfo.name,
+          midi: stringInfo.midi,
+          expectedFreq: stringInfo.freq,
+          avgEnergy,
+          avgConf,
+          samples: samples.length,
+          quality: Math.min(1, avgConf * (samples.length / 20)) // Quality based on confidence and sample count
+        });
+
+        $("calibrationDetails").textContent = `✓ ${stringInfo.name} calibrated (${samples.length} samples, ${avgEnergy.toFixed(1)}dB)`;
+      } else {
+        // Failed to get good samples for this string
+        cal.stringData.push({
+          string: stringInfo.name,
+          midi: stringInfo.midi,
+          expectedFreq: stringInfo.freq,
+          avgEnergy: cal.noiseFloor + 10, // Estimate
+          avgConf: 0,
+          samples: 0,
+          quality: 0
+        });
+
+        $("calibrationDetails").textContent = `⚠ ${stringInfo.name} - insufficient data, using defaults`;
+      }
+
+      cal.currentString++;
+      setTimeout(measureNextString, 1000); // 1 second pause between strings
+    }
+  }, 50); // 20fps
+}
+
+function finishCalibration() {
+  const cal = state.hardwareCalibration;
+
+  // Calculate optimal threshold and quality
+  const validStrings = cal.stringData.filter(s => s.samples >= 3);
+
+  if (validStrings.length >= 3) {
+    // Calculate average signal level
+    cal.averageSignal = validStrings.reduce((sum, s) => sum + s.avgEnergy, 0) / validStrings.length;
+
+    // Set threshold 30% above noise floor toward average signal
+    const signalRange = cal.averageSignal - cal.noiseFloor;
+    cal.optimalThreshold = cal.noiseFloor + (signalRange * 0.3);
+
+    // Calculate quality score
+    const avgQuality = validStrings.reduce((sum, s) => sum + s.quality, 0) / validStrings.length;
+    const coverageQuality = validStrings.length / CALIBRATION_STRINGS.length;
+    const separationQuality = Math.min(1, signalRange / 15); // 15dB = good separation
+
+    cal.quality = (avgQuality + coverageQuality + separationQuality) / 3;
+  } else {
+    // Failed calibration - use defaults
+    cal.optimalThreshold = -40;
+    cal.quality = 0;
+  }
+
+  cal.isCalibrated = true;
+  cal.isCalibrating = false;
+  cal.timestamp = Date.now();
+
+  // Update UI
+  $("calibrationProgressBar").style.width = "100%";
+  $("calibrationInstruction").textContent = cal.quality > 0.6 ? "✅ Calibration Complete!" : "⚠ Calibration Complete (Limited Data)";
+
+  showCalibrationResults();
+  updateCalibrationStatus();
+
+  // Update FFT threshold
+  updateFFTThresholdFromCalibration();
+}
+
+function showCalibrationResults() {
+  const cal = state.hardwareCalibration;
+  $("calibrationResults").style.display = "block";
+
+  let summaryHTML = `<div style="margin-bottom:12px;">
+    <strong>Quality Score:</strong> ${Math.round(cal.quality * 100)}%
+    (${cal.quality > 0.8 ? 'Excellent' : cal.quality > 0.6 ? 'Good' : cal.quality > 0.4 ? 'Fair' : 'Poor'})
+  </div>`;
+
+  summaryHTML += `<div style="margin-bottom:12px;">
+    <strong>Signal Range:</strong> ${(cal.averageSignal - cal.noiseFloor).toFixed(1)}dB
+    (Noise: ${cal.noiseFloor.toFixed(1)}dB, Signal: ${cal.averageSignal.toFixed(1)}dB)
+  </div>`;
+
+  summaryHTML += `<div style="margin-bottom:12px;">
+    <strong>Optimal Threshold:</strong> ${cal.optimalThreshold.toFixed(1)}dB
+  </div>`;
+
+  summaryHTML += `<div style="font-size:11px;">`;
+  for (const stringData of cal.stringData) {
+    const status = stringData.samples >= 3 ? '✓' : '⚠';
+    summaryHTML += `${status} ${stringData.string}: ${stringData.samples} samples, ${stringData.avgEnergy.toFixed(1)}dB<br>`;
+  }
+  summaryHTML += `</div>`;
+
+  $("calibrationSummary").innerHTML = summaryHTML;
+  $("closeCalibration").disabled = false;
+}
+
+function updateCalibrationUI() {
+  // This is called during calibration to update progress
+}
+
+function updateCalibrationStatus() {
+  const cal = state.hardwareCalibration;
+  const statusEl = $("calibrationStatus");
+
+  if (cal.isCalibrated) {
+    const qualityPercent = Math.round(cal.quality * 100);
+    const timeAgo = Math.round((Date.now() - cal.timestamp) / (1000 * 60));
+
+    statusEl.textContent = `Calibrated ${qualityPercent}% (${timeAgo}m ago)`;
+    statusEl.style.color = cal.quality > 0.6 ? "#1a7f37" : cal.quality > 0.4 ? "#ff9900" : "#b42318";
+
+    $("btnCalibrate").textContent = "🔄 Re-calibrate";
+    $("btnCalibrate").style.background = cal.quality > 0.6 ? "#1a7f37" : "#ff9900";
+  } else {
+    statusEl.textContent = "Not calibrated";
+    statusEl.style.color = "#b42318";
+    $("btnCalibrate").textContent = "🎸 Calibrate Hardware";
+    $("btnCalibrate").style.background = "#0066cc";
+  }
+}
+
+function updateFFTThresholdFromCalibration() {
+  const cal = state.hardwareCalibration;
+  if (cal.isCalibrated && cal.quality > 0.3) {
+    // Update the FFT threshold controls
+    setFftThreshold(cal.optimalThreshold);
+
+    // Disable adaptive calibration in favor of hardware calibration
+    state.adaptiveCalibration.enabled = false;
+    $("adaptiveCalibration").checked = false;
+  }
+}
+
+function closeCalibrationModal() {
+  $("calibrationModal").style.display = "none";
+  $("calibrationOverlay").style.display = "none";
+}
+
+/**
+ * -------------------------
  * App state
  * -------------------------
  */
@@ -1418,6 +2145,33 @@ const state = {
   analyser: null,
   micStream: null,
   rafId: null,
+
+  // Hardware calibration state (open string sequence)
+  hardwareCalibration: {
+    isCalibrated: false,
+    isCalibrating: false,
+    currentString: 0, // 0-5 (E-A-D-G-B-E)
+    stringData: [], // Measured data for each string
+    noiseFloor: -60, // Background noise level
+    averageSignal: -30, // Average string signal level
+    optimalThreshold: -40, // Calculated optimal threshold
+    quality: 0, // 0-1, calibration quality score
+    timestamp: null // When calibration was completed
+  },
+
+  // Adaptive calibration state (deprecated - replaced by hardware calibration)
+  adaptiveCalibration: {
+    enabled: false, // Disabled by default, hardware calibration takes priority
+    noiseFloor: -60,
+    signalPeak: -20,
+    adaptiveThreshold: -40,
+    learningRate: 0.05,
+    silentSamples: 0,
+    activeSamples: 0,
+    lastUpdate: 0,
+    confidence: 0,
+    minSamples: 100
+  },
 
   practicing: false,
 
@@ -1520,6 +2274,8 @@ function currentBeat(nowAudioTime) {
 function loop() {
   if (!state.practicing) return;
 
+  console.log("🚀🚀🚀 MAIN LOOP EXECUTING - VERSION CHECK 🚀🚀🚀");
+
   const now = state.audioCtx.currentTime;
   const beatNow = currentBeat(now);
 
@@ -1562,26 +2318,132 @@ function loop() {
   // Audio processing (skip during metronome ducking period)
   let freq = null, conf = 0, rms = 0, onset = false;
   let debugReason = "";
+  let detectionMethod = "none";
+  let chordDetectionResult = null;
+
+  console.log("🎛️ AUDIO PROCESSING DEBUG: skipAudioProcessing =", skipAudioProcessing, "now =", now.toFixed(3), "ignoreUntil =", state.ignoreUntil.toFixed(3));
+
   if (!skipAudioProcessing) {
-    // Read mic samples
-    const buf = new Float32Array(state.analyser.fftSize);
-    state.analyser.getFloatTimeDomainData(buf);
+    try {
+      // Read mic samples
+      const buf = new Float32Array(state.analyser.fftSize);
+      state.analyser.getFloatTimeDomainData(buf);
 
-    const pitchResult = yinPitch(buf, state.audioCtx.sampleRate);
-    freq = pitchResult.freq;
-    conf = pitchResult.conf;
-    rms = pitchResult.rms;
+      // Get current expected event to decide detection strategy
+      const expectedEvent = getCurrentExpectedEvent(beatNow);
 
-    // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
-    // Simplified for guitar: just need RMS above minimum OR a relative jump
-    onset = rms > 0.004 || rms > state.lastRms * 1.2;
-    state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
+      console.log("🎛️ AUDIO PROCESSING DEBUG: About to call hybrid detection");
+
+      // Use hybrid detection system
+      const detection = hybridDetection(state.analyser, buf, state.audioCtx.sampleRate, expectedEvent);
+      detectionMethod = detection.method;
+
+      if (detection.method === 'yin' || detection.method.includes('yin')) {
+        // Single note detection via YIN (including all fallback modes)
+        const pitchResult = detection.result;
+        freq = pitchResult.freq;
+        conf = pitchResult.conf;
+        rms = pitchResult.rms;
+      } else if (detection.method === 'fft') {
+        // Chord detection via FFT
+        chordDetectionResult = detection.result;
+        console.log("🎵 MAIN DEBUG: FFT result received:", chordDetectionResult);
+
+        // Calculate real RMS from time domain data for onset detection
+        let rmsSum = 0;
+        for (let i = 0; i < buf.length; i++) {
+          rmsSum += buf[i] * buf[i];
+        }
+        rms = Math.sqrt(rmsSum / buf.length);
+
+        conf = chordDetectionResult ? chordDetectionResult.confidence : 0;
+        freq = null; // No single frequency for chords
+      } else {
+        // Ultimate fallback - use YIN as default
+        const pitchResult = yinPitch(buf, state.audioCtx.sampleRate);
+        freq = pitchResult.freq;
+        conf = pitchResult.conf;
+        rms = pitchResult.rms;
+        detectionMethod = 'yin-ultimate-fallback';
+      }
+
+      // crude onset: require a jump in level vs previous frame (helps ignore steady speech/background)
+      // Simplified for guitar: just need RMS above minimum OR a relative jump
+      onset = rms > 0.004 || rms > state.lastRms * 1.2;
+      state.lastRms = 0.9 * state.lastRms + 0.1 * rms; // smooth baseline
+
+      // Update adaptive calibration based on current activity
+      const isCurrentlyPlaying = onset && rms > 0.001;
+      updateAdaptiveCalibration(state.analyser, rms, isCurrentlyPlaying);
+    } catch (error) {
+      // Error in detection - log and continue with defaults
+      console.error("Detection error:", error);
+      detectionMethod = "error";
+      rms = 0;
+      conf = 0;
+      onset = false;
+    }
   }
 
   // UI: input level / debug
   $("level").value = Math.min(1, rms * 20);
-  $("levelText").textContent =
-    `rms=${rms.toFixed(4)} conf=${conf.toFixed(2)} freq=${freq ? freq.toFixed(1) : "—"}`;
+
+  // Enhanced debug display for hybrid detection
+  let debugText = `rms=${rms.toFixed(4)} conf=${conf.toFixed(2)} method=${detectionMethod}`;
+  if (detectionMethod === 'yin' || detectionMethod.includes('yin')) {
+    debugText += ` freq=${freq ? freq.toFixed(1) : "—"}`;
+    if (detectionMethod.includes('fallback')) {
+      debugText += ` (FALLBACK)`;
+    }
+    if (detectionMethod.includes('bypass')) {
+      debugText += ` (BYPASS)`;
+    }
+  } else if (detectionMethod === 'fft' && chordDetectionResult) {
+    debugText += ` chord=${chordDetectionResult.detectedCount}/${chordDetectionResult.requiredCount}`;
+    if (chordDetectionResult.isStrong) {
+      debugText += ` STRONG`;
+    }
+    if (chordDetectionResult.detectedNotes && chordDetectionResult.detectedNotes.length > 0) {
+      const maxEnergy = Math.max(...chordDetectionResult.detectedNotes.map(n => Math.max(n.fundamentalEnergy, n.harmonicEnergy)));
+      debugText += ` peak=${maxEnergy.toFixed(1)}dB`;
+    }
+  } else {
+    debugText += ` freq=${freq ? freq.toFixed(1) : "—"}`;
+  }
+
+  $("levelText").textContent = debugText;
+
+  // Update FFT status display with real-time feedback
+  if (detectionMethod === 'fft' && chordDetectionResult) {
+    const threshold = parseFloat($("fftThreshold").value || -40);
+    let statusText = `Detecting: ${chordDetectionResult.detectedCount}/${chordDetectionResult.requiredCount} `;
+
+    if (chordDetectionResult.detectedNotes.length > 0) {
+      const maxEnergy = Math.max(...chordDetectionResult.detectedNotes.map(n => Math.max(n.fundamentalEnergy, n.harmonicEnergy)));
+      const margin = maxEnergy - threshold;
+      statusText += `(${maxEnergy.toFixed(1)}dB, +${margin.toFixed(1)}dB margin)`;
+
+      // Color code based on detection quality
+      if (chordDetectionResult.success) {
+        $("fftStatus").style.color = "#1a7f37"; // Green for success
+      } else if (chordDetectionResult.confidence > 0.5) {
+        $("fftStatus").style.color = "#ff9900"; // Orange for partial detection
+      } else {
+        $("fftStatus").style.color = "#b42318"; // Red for poor detection
+      }
+    } else {
+      statusText += "(no signal)";
+      $("fftStatus").style.color = "#666"; // Gray for no signal
+    }
+
+    $("fftStatus").textContent = statusText;
+  } else if (detectionMethod === 'yin') {
+    $("fftStatus").style.color = "#666";
+    $("fftStatus").textContent = `YIN mode (single notes)`;
+  } else {
+    $("fftStatus").style.color = "#666";
+    $("fftStatus").textContent = `Threshold: ${parseFloat($("fftThreshold").value || -40)}dB`;
+  }
 
   // Visual notes already updated above (to prevent stuttering)
 
@@ -1594,57 +2456,168 @@ function loop() {
   // Pitch processing and note matching (skip during metronome ducking)
   let midiFloat = null;
   let midiRounded = null;
+  let shouldProcessDetection = false;
 
-  if (!skipAudioProcessing && freq) {
-    midiFloat = freqToMidi(freq);
-    midiRounded = Math.round(midiFloat);
-
-    // Stability gate
-    if (midiRounded !== null) {
-      if (state.lastMidiRounded === midiRounded) state.stableCount++;
-      else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
-    } else {
-      state.lastMidiRounded = null;
-      state.stableCount = 0;
-    }
-
+  if (!skipAudioProcessing) {
     // Trigger gate - make cooldown tempo-aware
     const beatDurationSec = 60 / state.bpm;
     const adaptiveCooldown = Math.min(COOLDOWN_SEC, beatDurationSec * 0.3); // Max 30% of beat duration
     const canTrigger = (now - state.lastTriggerAt) > adaptiveCooldown;
 
-    // Debug: Check why detection might fail
-    if (freq !== null && rms > MIN_RMS) {
-      const reasons = [];
-      if (conf < 0.65) reasons.push(`conf=${conf.toFixed(2)}<0.65`);
-      if (!onset) {
-        const minThreshold = 0.004;
-        const relativeThreshold = state.lastRms * 1.2;
-        reasons.push(`no onset (rms=${rms.toFixed(4)} ≤ ${minThreshold} AND ≤ ${relativeThreshold.toFixed(4)})`);
-      }
-      if (midiFloat === null) reasons.push("no MIDI");
-      if (state.stableCount < STABLE_FRAMES) reasons.push(`unstable=${state.stableCount}/${STABLE_FRAMES}`);
-      if (!canTrigger) reasons.push(`cooldown (${adaptiveCooldown.toFixed(2)}s)`);
+    // Reduced cooldown for chords to allow quick transitions
+    const chordCooldown = Math.min(adaptiveCooldown * 0.5, 0.1); // Half cooldown or max 100ms
+    const canTriggerChord = (now - state.lastTriggerAt) > chordCooldown;
 
-      if (reasons.length > 0) {
-        debugReason = `🔍 DETECTED ${freq.toFixed(1)}Hz (${midiToName(Math.round(freqToMidi(freq)))}) but BLOCKED: ${reasons.join(", ")}`;
+    if (detectionMethod === 'yin' && freq) {
+      // YIN single note detection logic
+      midiFloat = freqToMidi(freq);
+      midiRounded = Math.round(midiFloat);
+
+      // Stability gate for YIN
+      if (midiRounded !== null) {
+        if (state.lastMidiRounded === midiRounded) state.stableCount++;
+        else { state.lastMidiRounded = midiRounded; state.stableCount = 1; }
+      } else {
+        state.lastMidiRounded = null;
+        state.stableCount = 0;
       }
-    } else if (rms > 0.001) {
-      debugReason = `🔇 SIGNAL TOO WEAK: rms=${rms.toFixed(4)} (need >${MIN_RMS}) or no frequency detected`;
+
+      // Debug: Check why YIN detection might fail
+      if (freq !== null && rms > MIN_RMS) {
+        const reasons = [];
+        if (conf < 0.65) reasons.push(`conf=${conf.toFixed(2)}<0.65`);
+        if (!onset) {
+          const minThreshold = 0.004;
+          const relativeThreshold = state.lastRms * 1.2;
+          reasons.push(`no onset (rms=${rms.toFixed(4)} ≤ ${minThreshold} AND ≤ ${relativeThreshold.toFixed(4)})`);
+        }
+        if (midiFloat === null) reasons.push("no MIDI");
+        if (state.stableCount < STABLE_FRAMES) reasons.push(`unstable=${state.stableCount}/${STABLE_FRAMES}`);
+        if (!canTrigger) reasons.push(`cooldown (${adaptiveCooldown.toFixed(2)}s)`);
+
+        if (reasons.length > 0) {
+          debugReason = `🔍 YIN DETECTED ${freq ? freq.toFixed(1) : "--"}Hz (${midiToName(Math.round(freqToMidi(freq)))}) but BLOCKED: ${reasons.join(", ")}`;
+        }
+      } else if (rms > 0.001) {
+        debugReason = `🔇 YIN SIGNAL TOO WEAK: rms=${rms.toFixed(4)} (need >${MIN_RMS}) or no frequency detected`;
+      }
+
+      shouldProcessDetection = !state.exerciseCompleted && conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger;
+
+    } else if (detectionMethod === 'fft' && chordDetectionResult) {
+      // FFT chord detection logic
+      state.stableCount = STABLE_FRAMES; // Skip stability check for chords
+      state.lastMidiRounded = null;
+
+      // Debug: Check why FFT detection might fail
+      if (chordDetectionResult.detectedCount > 0) {
+        const reasons = [];
+        if (conf < 0.2) reasons.push(`conf=${conf.toFixed(2)}<0.2`); // Lower threshold for chords
+        // Note: No onset requirement for chords - they can be sustained
+        if (!chordDetectionResult.success) {
+          reasons.push(`partial chord (${chordDetectionResult.detectedCount}/${chordDetectionResult.requiredCount}, need ${chordDetectionResult.majorityThreshold}+)`);
+        }
+        if (!canTriggerChord) reasons.push(`cooldown (${chordCooldown.toFixed(2)}s)`);
+
+        if (reasons.length > 0) {
+          debugReason = `🔍 FFT DETECTED ${chordDetectionResult.detectedCount}/${chordDetectionResult.requiredCount} chord tones but BLOCKED: ${reasons.join(", ")}`;
+        }
+      } else {
+        console.log("🔇 FFT DEBUG: No chord tones detected, chordDetectionResult:", chordDetectionResult);
+        debugReason = `🔇 FFT NO CHORD DETECTED: conf=${conf.toFixed(2)}`;
+      }
+
+      // Chord detection: Always process if we have a result, success or failure
+      // This prevents animation from stopping when chords aren't perfectly detected
+      shouldProcessDetection = !state.exerciseCompleted && chordDetectionResult && canTriggerChord;
     }
-
-    // Don't trigger new matches after exercise is completed (avoid feedback spam from sustained strings)
-    const shouldProcessDetection = !state.exerciseCompleted && conf >= 0.65 && onset && midiFloat !== null && state.stableCount >= STABLE_FRAMES && canTrigger;
 
     if (shouldProcessDetection) {
       state.lastTriggerAt = now;
 
-      // Match against tab
-      const verdict = tryMatchPlayed(beatNow, freq);
+      let verdict = null;
 
-      // UI: show detected note
-      $("lastNote").textContent = midiToName(midiRounded);
-      $("lastNote").classList.add("flash");
+      if (detectionMethod === 'yin') {
+        // Match single note using existing logic
+        verdict = tryMatchPlayed(beatNow, freq);
+
+        // UI: show detected note
+        $("lastNote").textContent = midiToName(midiRounded);
+        $("lastNote").classList.add("flash");
+
+      } else if (detectionMethod === 'fft') {
+        // FFT chord detection with intelligent feedback
+        const expectedEvent = getCurrentExpectedEvent(beatNow);
+
+        if (expectedEvent && expectedEvent.type === "chord") {
+          const detectedCount = chordDetectionResult.detectedCount || 0;
+          const requiredCount = expectedEvent.notes.length;
+          const success = chordDetectionResult.success || false;
+
+          // Provide feedback based on detection quality
+          if (success && detectedCount >= 1) {
+            // Successful chord detection
+            verdict = {
+              ok: true,
+              expected: expectedEvent.notes[0].midi,
+              detected: expectedEvent.notes[0].midi,
+              centsOff: 0,
+              timingBeats: beatNow - expectedEvent.beat,
+              expectedBeat: expectedEvent.beat,
+              isChord: true,
+              chordTone: null,
+              chordSize: expectedEvent.notes.length
+            };
+
+            expectedEvent.hit = true;
+            expectedEvent.judged = true;
+
+            // Show detailed chord feedback
+            const detectedNames = chordDetectionResult.detectedNotes.map(note => midiToName(note.midi)).join('+');
+            $("lastNote").textContent = `${detectedNames} (${detectedCount}/${requiredCount})`;
+
+          } else if (detectedCount > 0) {
+            // Partial chord detection - still give partial credit
+            verdict = {
+              ok: true, // Give credit for partial detection
+              expected: expectedEvent.notes[0].midi,
+              detected: expectedEvent.notes[0].midi,
+              centsOff: 0,
+              timingBeats: beatNow - expectedEvent.beat,
+              expectedBeat: expectedEvent.beat,
+              isChord: true,
+              chordTone: "partial",
+              chordSize: expectedEvent.notes.length
+            };
+
+            expectedEvent.hit = true;
+            expectedEvent.judged = true;
+
+            $("lastNote").textContent = `Partial (${detectedCount}/${requiredCount})`;
+
+          } else {
+            // No chord detected - mark as miss but continue animation
+            verdict = {
+              ok: false,
+              expected: expectedEvent.notes[0].midi,
+              detected: expectedEvent.notes[0].midi,
+              centsOff: 999, // Large value to indicate miss
+              timingBeats: beatNow - expectedEvent.beat,
+              expectedBeat: expectedEvent.beat,
+              isChord: true,
+              chordTone: null,
+              chordSize: expectedEvent.notes.length
+            };
+
+            expectedEvent.miss = true;
+            expectedEvent.judged = true;
+
+            $("lastNote").textContent = `Chord Miss (0/${requiredCount})`;
+          }
+
+          $("lastNote").classList.add("flash");
+        }
+      }
 
       if (verdict) {
         const detectedName = midiToName(Math.round(verdict.detected));
@@ -1671,7 +2644,7 @@ function loop() {
           debugInfo = [
             `🎵 CHORD ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
             `Matched: ${expectedName} (${chordToneInfo}) from ${verdict.chordSize}-note chord`,
-            `Raw: ${rawNoteName} (${freq.toFixed(1)}Hz) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
+            `Raw: ${rawNoteName} (${freq ? freq.toFixed(1) + "Hz" : "chord"}) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
             `Conf: ${conf.toFixed(2)}`,
             `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
             `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
@@ -1681,7 +2654,7 @@ function loop() {
           debugInfo = [
             `🎵 SINGLE NOTE: ${verdict.ok ? "✓ HIT" : "✗ MISS"}`,
             `Expected: ${expectedName} (MIDI ${verdict.expected})`,
-            `Raw: ${rawNoteName} (${freq.toFixed(1)}Hz) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
+            `Raw: ${rawNoteName} (${freq ? freq.toFixed(1) + "Hz" : "chord"}) → Corrected: ${detectedName} (MIDI ${Math.round(verdict.detected)})`,
             `Conf: ${conf.toFixed(2)}`,
             `Timing: beat ${beatNow.toFixed(2)}, expected ${verdict.expectedBeat.toFixed(2)} (Δ${verdict.timingBeats.toFixed(2)})`,
             `Tolerance: ±${(timingWindowBeats(state.bpm).toFixed(2))} beats, ±${CENTS_TOLERANCE} cents`,
@@ -1708,7 +2681,7 @@ function loop() {
         $("status").textContent = "no match";
 
         // Log cases where no note was matched
-        addDebugEntry(`🔍 NO MATCH: Detected ${midiToName(midiRounded)} (${freq.toFixed(1)}Hz, conf ${conf.toFixed(2)}) at beat ${beatNow.toFixed(2)} but no expected note within timing window`);
+        addDebugEntry(`🔍 NO MATCH: Detected ${midiToName(midiRounded)} (${freq ? freq.toFixed(1) : "--"}Hz, conf ${conf.toFixed(2)}) at beat ${beatNow.toFixed(2)} but no expected note within timing window`);
       }
 
       setTimeout(() => $("lastNote").classList.remove("flash"), 200);
@@ -1784,6 +2757,62 @@ function setBpm(bpm) {
 
 $("bpm").addEventListener("input", (e) => setBpm(e.target.value));
 $("bpmNum").addEventListener("change", (e) => setBpm(e.target.value));
+
+// FFT calibration event handlers
+function setFftThreshold(threshold) {
+  threshold = Math.max(-60, Math.min(-20, Number(threshold)));
+  $("fftThreshold").value = threshold;
+  $("fftThresholdNum").value = threshold;
+  $("fftStatus").textContent = `Threshold: ${threshold}dB (${threshold <= -50 ? 'Very Sensitive' : threshold <= -40 ? 'Normal' : threshold <= -30 ? 'Less Sensitive' : 'Strict'})`;
+}
+
+$("fftThreshold").addEventListener("input", (e) => setFftThreshold(e.target.value));
+$("fftThresholdNum").addEventListener("change", (e) => setFftThreshold(e.target.value));
+
+// Adaptive calibration controls
+$("adaptiveCalibration").addEventListener("change", (e) => {
+  state.adaptiveCalibration.enabled = e.target.checked;
+  if (e.target.checked) {
+    updateAdaptiveCalibrationUI();
+  } else {
+    $("fftStatus").style.color = "#666";
+    $("fftStatus").textContent = `Manual mode: ${$("fftThreshold").value}dB`;
+  }
+});
+
+$("resetCalibration").addEventListener("click", () => {
+  resetAdaptiveCalibration();
+});
+
+// Hardware calibration event handlers
+$("btnCalibrate").addEventListener("click", () => {
+  if (!state.audioCtx || !state.analyser) {
+    alert("Please enable microphone access first!");
+    return;
+  }
+  startHardwareCalibration();
+});
+
+$("startCalibration").addEventListener("click", () => {
+  // The calibration starts automatically when startHardwareCalibration is called
+});
+
+$("skipCalibration").addEventListener("click", () => {
+  state.hardwareCalibration.isCalibrated = false;
+  updateCalibrationStatus();
+  closeCalibrationModal();
+});
+
+$("closeCalibration").addEventListener("click", () => {
+  closeCalibrationModal();
+});
+
+// Close modal when clicking overlay
+$("calibrationOverlay").addEventListener("click", () => {
+  if (!state.hardwareCalibration.isCalibrating) {
+    closeCalibrationModal();
+  }
+});
 
 $("exercise").addEventListener("change", (e) => {
   const selectedFileName = e.target.value;
@@ -1966,6 +2995,8 @@ $("btnStop").addEventListener("click", () => {
 
 // Initial render
 setBpm(DEFAULT_BPM);
+setFftThreshold(-40); // Initialize FFT threshold
+updateCalibrationStatus(); // Initialize calibration status
 renderNotes();
 updateScoreDisplay();
 $("status").textContent = "ready";

@@ -34,11 +34,14 @@ No plugins. No native apps. Just your browser and a microphone.
 - **Real-time accuracy**: Live percentage calculation with score tracking
 - **Visual feedback**: Hit zone line glows green (hit), red (wrong note), or yellow (missed)
 
-### 🎵 **Audio Engine**
-- **YIN pitch detection**: Robust monophonic note detection
-- **Octave correction**: Handles harmonic detection errors
-- **Microphone input**: Web Audio API with noise filtering
-- **Timing precision**: Fixed metronome drift issues
+### 🎵 **Advanced Audio Engine**
+- **Hybrid Detection System**: Automatic switching between YIN (single notes) and FFT (chords)
+- **YIN pitch detection**: Robust monophonic note detection with octave correction
+- **FFT chord detection**: Polyphonic frequency analysis for simultaneous notes
+- **Smart algorithm selection**: Detects single notes vs chords and uses optimal detection method
+- **Adaptive threshold calibration**: Auto-calibrates energy thresholds for your setup
+- **Manual threshold control**: Fine-tune FFT sensitivity (-60dB to -20dB range)
+- **Microphone input**: Web Audio API with advanced noise filtering
 
 ### 🎼 **Exercise System**
 - **JSON-based exercises**: Easy to create and modify
@@ -59,6 +62,7 @@ No plugins. No native apps. Just your browser and a microphone.
 1. **Setup**:
    - Click "Enable Mic" and allow microphone access
    - Put on headphones (prevents metronome feedback)
+   - **Configure detection**: Adjust FFT Energy Threshold (-60dB to -20dB) for chord sensitivity
    - Select an exercise from the dropdown OR upload your own MusicXML file
    - Adjust BPM as needed (slower = easier)
 
@@ -83,10 +87,11 @@ No plugins. No native apps. Just your browser and a microphone.
 
 ## 🚧 Current Limitations
 
-- **Chord tolerance mode**: While chords are supported visually, only one note needs to be played from each chord
+- **Chord tolerance mode**: Full chord detection implemented - any chord tone counts as success
 - **Pitch-based detection**: Detects what you played, not which fret/string
 - **Timing-based only**: Removed practice mode - all exercises require proper timing
 - **Best with headphones**: Prevents metronome feedback into microphone
+- **FFT calibration**: May require threshold adjustment for different microphone/guitar setups
 
 ---
 
@@ -98,13 +103,15 @@ No plugins. No native apps. Just your browser and a microphone.
 3. Hit timing = when left edge reaches the green line
 4. Visual feedback triggers when right edge passes the line
 
-### **Audio Detection Pipeline**
+### **Hybrid Audio Detection Pipeline**
 1. Browser captures audio via `getUserMedia`
 2. Web Audio API analyzes audio in real-time
-3. **YIN algorithm** detects fundamental frequency
-4. **Octave correction** handles harmonic detection errors
-5. Pitch is stabilized across multiple frames
-6. **Timing window matching** finds notes within beat tolerance
+3. **Algorithm selection**: System determines if current expected note is single or chord
+4. **For single notes**: YIN algorithm detects fundamental frequency with octave correction
+5. **For chords**: FFT analyzes frequency spectrum to detect multiple simultaneous notes
+6. **Energy thresholds**: Adaptive calibration fine-tunes detection sensitivity
+7. **Pitch stabilization**: Results stabilized across multiple frames
+8. **Timing window matching**: Finds notes within beat tolerance
 
 ### **Scoring Logic**
 1. **Input tracking**: System monitors if any guitar input detected during note windows
