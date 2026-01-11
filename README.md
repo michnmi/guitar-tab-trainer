@@ -6,11 +6,12 @@ Play along with animated guitar tablature that moves across your screen in real-
 
 **Key Features:**
 - 🎯 **Visual Timeline**: Notes move across a guitar fretboard from right to left
+- 🔄 **Practice Mode**: Loop specific measures with optional "breathing room" between loops
+- 🎼 **Interactive Tabs**: Clickable tablature view to select practice ranges
 - 🎵 **Timing-Based Scoring**: Hit notes exactly when they reach the green line
-- 🎸 **Multiple Exercises**: JSON-based exercise system with built-in songs
-- 📊 **Detailed Scoring**: Track hits, misses, and skipped notes with accuracy percentage
+- 📊 **Practice History**: Track your session stats, accuracy, and improvements over time
 - 🎤 **Live Audio Detection**: Real-time pitch detection with octave correction
-- 🥁 **Built-in Metronome**: Helps maintain steady rhythm during practice
+- 🛠 **Advanced Calibration**: Auto-calibration and manual hardware setup for optimal detection
 - 📁 **MusicXML Import**: Upload your own .mxl/.xml/.musicxml files for instant practice
 
 No plugins. No native apps. Just your browser and a microphone.
@@ -21,105 +22,65 @@ No plugins. No native apps. Just your browser and a microphone.
 
 ### 🎸 **Visual Guitar Interface**
 - Large, animated fretboard with 6 strings (E-A-D-G-B-E)
-- Rectangular notes showing fret numbers that move right-to-left
+- **Interactive Static Tab**: View the full song tablature and click measures to set loop points
 - Note width represents timing duration for better rhythm visualization
 - **Chord visualization**: Multiple notes grouped with dotted borders for chord recognition
-- Hit zone with real-time visual feedback (green/red/orange)
 
-### 🎯 **Timing & Scoring System**
-- **Timing-based matching**: Hit notes when left edge reaches green line
-- **Three-category scoring**: Hits ✓, Misses ✗, Skipped ⊝
-- **Chord tolerance**: Any note from a chord counts as success (play one, get credit for all)
-- **Smart detection**: Distinguishes wrong notes vs. no input
-- **Real-time accuracy**: Live percentage calculation with score tracking
-- **Visual feedback**: Hit zone line glows green (hit), red (wrong note), or yellow (missed)
+### 🛠 **Practice Tools**
+- **Loop Mode**: Select specific bars in the tab view to practice difficult sections repeatedly
+- **Breathing Room (+4 Beat Wait)**: Optional toggle to pause and count-in (4 beats) between loop iterations, giving you time to reset your hands
+- **Practice History**: Logs every attempt with accuracy %, hits, misses, and skips
+- **Debug Console**: View real-time audio detection logs to diagnose microphone issues
 
 ### 🎵 **Advanced Audio Engine**
 - **Hybrid Detection System**: Automatic switching between YIN (single notes) and FFT (chords)
-- **YIN pitch detection**: Robust monophonic note detection with octave correction
-- **FFT chord detection**: Polyphonic frequency analysis for simultaneous notes
 - **Smart algorithm selection**: Detects single notes vs chords and uses optimal detection method
-- **Adaptive threshold calibration**: Auto-calibrates energy thresholds for your setup
-- **Manual threshold control**: Fine-tune FFT sensitivity (-60dB to -20dB range)
-- **Microphone input**: Web Audio API with advanced noise filtering
+- **Hardware Calibration**: Guided wizard to calibrate for your specific guitar and microphone volume
+- **Adaptive Thresholds**: System learns your background noise floor to prevent false triggers
 
 ### 🎼 **Exercise System**
-- **JSON-based exercises**: Easy to create and modify
-- **Multiple built-in songs**: Basic strings, chromatic scales, House of the Rising Sun
-- **Difficulty levels**: Beginner to intermediate exercises
-- **BPM control**: Adaptive timing windows based on tempo
-
-### 🐳 **Technical**
-- Pure web technology (no plugins required)
-- Dockerized deployment
-- Responsive layout with focus on fretboard
-- Real-time visual feedback system
+- **MusicXML Support**: Drag & drop support for .mxl, .xml, and .musicxml files (MuseScore, Guitar Pro, etc.)
+- **Built-in Songs**: Includes Basic Strings, Chromatic Scales, and House of the Rising Sun
+- **BPM Control**: Adjust speed from 40 to 200 BPM
 
 ---
 
 ## 🎮 How to Play
 
 1. **Setup**:
-   - Click "Enable Mic" and allow microphone access
-   - Put on headphones (prevents metronome feedback)
-   - **Configure detection**: Adjust FFT Energy Threshold (-60dB to -20dB) for chord sensitivity
-   - Select an exercise from the dropdown OR upload your own MusicXML file
-   - Adjust BPM as needed (slower = easier)
+   - Click "Enable Mic" and allow microphone access.
+   - **Calibrate**: Use the "Calibrate Hardware" button for the best experience.
+   - Select an exercise or drag-and-drop a MusicXML file.
 
-2. **Upload MusicXML (Optional)**:
-   - Drag and drop a .mxl, .xml, or .musicxml file onto the upload area
-   - Or click to browse and select a file
-   - The file will automatically convert and load as a new exercise
-   - Supports files from MuseScore, Sibelius, Finale, and other notation software
+2. **Practice Controls**:
+   - **Looping**: Click a measure in the "Practice Selector" tab view to select it. Click another measure to define a range. Check "Loop Selected Bars" to enable.
+   - **+4 Beat Wait**: Enable this toggle to add a 4-beat count-in before every loop restart. This helps you reset and prepare for the next attempt.
+   - **BPM**: Slow down the tempo using the slider to learn difficult parts.
 
 3. **Playing**:
-   - Click "Start" to begin
-   - Watch rectangular notes move from right to left across the fretboard
-   - Play the correct fret when the left edge of each note reaches the green line
-   - Note width shows how long to sustain each note
-   - **Chord Support**: When multiple notes appear grouped with a dotted border, play ANY one of the chord tones for success
-   - The green feedback line changes color: green (hit), red (wrong note), yellow (missed)
+   - Click "Start".
+   - Play the correct fret when the note reaches the green line.
+   - **Chord Support**: For chord groups (dotted borders), play all notes simultaneously.
 
 4. **Scoring**:
-   - **✓ Hit**: Correct note played at the right time
-   - **✗ Miss**: Wrong note played during timing window
-   - **⊝ Skip**: No note played when timing window expired
-
-## 🚧 Current Limitations
-
-- **Chord tolerance mode**: Full chord detection implemented - any chord tone counts as success
-- **Pitch-based detection**: Detects what you played, not which fret/string
-- **Timing-based only**: Removed practice mode - all exercises require proper timing
-- **Best with headphones**: Prevents metronome feedback into microphone
-- **FFT calibration**: May require threshold adjustment for different microphone/guitar setups
+   - **✓ Hit**: Correct note/chord played at the right time.
+   - **✗ Miss**: Wrong note played.
+   - **⊝ Skip**: No note played.
+   - check the "Practice History" panel to see your progress.
 
 ---
 
-## 🧩 How it Works
+## 🧩 Technical Architecture
 
-### **Visual Timeline System**
-1. Notes spawn from the rightmost edge of the fretboard
-2. They move left at constant speed based on BPM
-3. Hit timing = when left edge reaches the green line
-4. Visual feedback triggers when right edge passes the line
+The project has been refactored into a modular ES6 architecture for maintainability:
 
-### **Hybrid Audio Detection Pipeline**
-1. Browser captures audio via `getUserMedia`
-2. Web Audio API analyzes audio in real-time
-3. **Algorithm selection**: System determines if current expected note is single or chord
-4. **For single notes**: YIN algorithm detects fundamental frequency with octave correction
-5. **For chords**: FFT analyzes frequency spectrum to detect multiple simultaneous notes
-6. **Energy thresholds**: Adaptive calibration fine-tunes detection sensitivity
-7. **Pitch stabilization**: Results stabilized across multiple frames
-8. **Timing window matching**: Finds notes within beat tolerance
-
-### **Scoring Logic**
-1. **Input tracking**: System monitors if any guitar input detected during note windows
-2. **Three-way classification**:
-   - Hit = correct pitch + timing
-   - Miss = wrong pitch detected
-   - Skip = no input detected
-3. **Real-time feedback**: Visual effects trigger immediately
+- **`main.js`**: Core application loop and event orchestration
+- **`audio-engine.js`**: YIN and FFT pitch detection algorithms
+- **`visuals.js`**: Rendering of the animated fretboard and feedback effects
+- **`tab-renderer.js`**: Drawing the static, interactive tablature view
+- **`state.js`**: Centralized state management
+- **`exercises.js`**: JSON and MusicXML parsing/loading logic
+- **`calibration.js`**: Hardware calibration wizards and adaptive threshold logic
 
 ---
 
