@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { CONSTANTS, $ } from './utils.js';
 import { renderStaticTab } from './tab-renderer.js';
+import { clearVisualNotes } from './visuals.js'; // <--- NEW IMPORT
 
 // --- BUILT-IN EXERCISE LOADING ---
 
@@ -67,6 +68,28 @@ export async function loadAvailableExercises() {
 // --- CORE LOAD FUNCTION ---
 
 export function loadExercise(exercise) {
+    // --- NEW: FORCE RESET WHEN SWITCHING EXERCISES ---
+    // 1. Stop the loop
+    state.practicing = false;
+    if (state.rafId) {
+        cancelAnimationFrame(state.rafId);
+        state.rafId = null;
+    }
+
+    // 2. Reset Start/Stop Buttons
+    const btnStart = $("btnStart");
+    const btnStop = $("btnStop");
+    if (btnStart) btnStart.disabled = false;
+    if (btnStop) btnStop.disabled = true;
+
+    // 3. Clear visuals from previous run
+    clearVisualNotes();
+
+    // 4. Reset Status text
+    const status = $("status");
+    if (status) status.textContent = "Ready.";
+    // -------------------------------------------------
+
     // Update State
     state.currentExercise = exercise;
     state.events = exercise.notes.map(n => ({
@@ -103,10 +126,6 @@ export function loadExercise(exercise) {
 
     // Render Tabs
     renderStaticTab(exercise);
-
-    // Update Status
-    const status = $("status");
-    if (status) status.textContent = "Ready.";
 }
 
 // --- MUSICXML UPLOAD LOGIC ---
@@ -208,11 +227,11 @@ export function setupMusicXMLUpload() {
     function convertMusicXMLToExercise(xmlDoc, fileName) {
         // --- IMPROVED TITLE PARSING ---
         let title = fileName;
-        
+
         // 1. Check <work-title>
         const workTitle = xmlDoc.querySelector("work-title")?.textContent;
         if (workTitle) title = workTitle;
-        
+
         // 2. Check <movement-title>
         const movTitle = xmlDoc.querySelector("movement-title")?.textContent;
         if (movTitle) title = movTitle;
@@ -221,9 +240,9 @@ export function setupMusicXMLUpload() {
         const credits = xmlDoc.querySelectorAll("credit");
         credits.forEach(c => {
             const type = c.querySelector("credit-type")?.textContent || c.getAttribute("type");
-            if(type === "title") {
+            if (type === "title") {
                 const words = c.querySelector("credit-words")?.textContent;
-                if(words) title = words;
+                if (words) title = words;
             }
         });
 
