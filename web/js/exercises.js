@@ -1,7 +1,12 @@
 import { state } from './state.js';
 import { CONSTANTS, $ } from './utils.js';
 import { renderStaticTab } from './tab-renderer.js';
-import { clearVisualNotes } from './visuals.js'; // <--- NEW IMPORT
+import { clearVisualNotes } from './visuals.js';
+
+// --- SHARED STATE ---
+// We move this to the top level so both 'loadAvailableExercises' and 
+// 'setupMusicXMLUpload' can access the same list of exercises.
+let loadedExercises = [];
 
 // --- BUILT-IN EXERCISE LOADING ---
 
@@ -18,7 +23,8 @@ export async function loadAvailableExercises() {
         'house-of-rising-sun.json'
     ];
 
-    const loadedExercises = [];
+    // Reset list
+    loadedExercises = [];
 
     // 1. Add Metronome Only
     loadedExercises.push({
@@ -68,8 +74,7 @@ export async function loadAvailableExercises() {
 // --- CORE LOAD FUNCTION ---
 
 export function loadExercise(exercise) {
-    // --- NEW: FORCE RESET WHEN SWITCHING EXERCISES ---
-    // 1. Stop the loop
+    // 1. Stop the loop and cancel animation
     state.practicing = false;
     if (state.rafId) {
         cancelAnimationFrame(state.rafId);
@@ -88,10 +93,10 @@ export function loadExercise(exercise) {
     // 4. Reset Status text
     const status = $("status");
     if (status) status.textContent = "Ready.";
-    // -------------------------------------------------
 
     // Update State
     state.currentExercise = exercise;
+    // Deep copy notes to ensure we don't mutate the original definition
     state.events = exercise.notes.map(n => ({
         ...n,
         hit: false,
@@ -208,15 +213,26 @@ export function setupMusicXMLUpload() {
             const exercise = convertMusicXMLToExercise(xmlDoc, fileName);
 
             if (exercise) {
+                // --- FIX: Add uploaded exercise to the shared list ---
+
+                // 1. Give it a unique ID so the dropdown can distinguish it
+                const uniqueId = "uploaded-" + Date.now();
+                exercise.fileName = uniqueId;
+
+                // 2. Add to our master list
+                loadedExercises.push(exercise);
+
+                // 3. Load it immediately
                 loadExercise(exercise);
                 showUploadStatus(`Loaded: ${exercise.name}`, "success");
 
+                // 4. Add to Dropdown with the correct ID value
                 const select = $("exercise");
                 const opt = document.createElement("option");
                 opt.text = `[Upload] ${exercise.name}`;
-                opt.value = "UPLOADED";
+                opt.value = uniqueId; // Uses the unique ID now
                 select.add(opt, 0);
-                select.value = "UPLOADED";
+                select.value = uniqueId;
             }
         } catch (e) {
             console.error(e);
