@@ -36,9 +36,14 @@ export const state = {
 
     // Looping
     isLooping: false,
-    loopWait: false, // <--- ADD THIS LINE
+    loopWait: false,
     loopStartBeat: 0,
     loopEndBeat: 0,
+
+    // --- NEW: Data Storage (Add these lines) ---
+    debugLog: [],        // Stores the log messages
+    practiceHistory: [], // Stores your session scores
+    // -------------------------------------------
 
     // Calibration
     hardwareCalibration: {
@@ -50,15 +55,19 @@ export const state = {
     },
     adaptiveCalibration: {
         enabled: true,
-        history: [], // Stores last 5 seconds of peak levels
+        history: [],
         noiseFloor: -60,
         signalPeak: -20,
         confidence: 0,
-        adaptiveThreshold: -40
+        adaptiveThreshold: -40,
+        // Safety defaults in case they are accessed before init
+        activeSamples: 0,
+        silentSamples: 0,
+        minSamples: 100
     },
 
     // UI Toggles
-    debugMode: false // New Toggle for Console Logs
+    debugMode: false
 };
 
 // Travel distance for notes in pixels (calculated on resize)
