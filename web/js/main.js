@@ -14,6 +14,7 @@ import { renderStaticTab } from './tab-renderer.js';
 window.startHardwareCalibration = startHardwareCalibration;
 window.clearDebugLog = clearDebugLog;
 window.copyDebugToClipboard = copyDebugToClipboard;
+window.state = state; // inspect live state from the devtools console, e.g. state.beatsPerBar
 
 function resetPractice() {
     state.practicing = false;
@@ -212,6 +213,7 @@ function loop() {
                 const barPos = ((currentBeatInt % beatsPerBar) + beatsPerBar) % beatsPerBar;
                 if (!state.isLooping || (beatNow >= state.loopStartBeat && beatNow < state.loopEndBeat)) {
                     metroTick(barPos === 0);
+                    if (state.debugMode) addDebugEntry(`🥁 tick beat=${currentBeatInt} pos=${(barPos + 1).toFixed(1)}/${beatsPerBar}${barPos === 0 ? " (accent)" : ""}`);
                 }
                 let nextTime = state.nextMetroTime + beatsToSeconds(1, state.bpm);
                 if (nextTime < now + 0.05) nextTime = now + beatsToSeconds(1, state.bpm);

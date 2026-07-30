@@ -230,7 +230,7 @@ export function setupMusicXMLUpload() {
 
                 // 3. Load it immediately
                 loadExercise(exercise);
-                showUploadStatus(`Loaded: ${exercise.name}`, "success");
+                showUploadStatus(`Loaded: ${exercise.name} (detected ${exercise.timeSigBeats}/${exercise.timeSigUnit} time)`, "success");
 
                 // 4. Add to Dropdown with the correct ID value
                 const select = $("exercise");
@@ -357,6 +357,8 @@ export function setupMusicXMLUpload() {
                 }
             });
         });
+
+        console.log(`MusicXML parse: ${measures.length} measures, time signature ${timeSigBeats}/${timeSigUnit}, transpose ${transposeSemitones} semitones, bpm ${bpm}`);
 
         return {
             name: title,
