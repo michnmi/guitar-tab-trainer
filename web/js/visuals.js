@@ -1,6 +1,19 @@
 import { state, noteTravelDistance } from './state.js';
 import { CONSTANTS, midiToFret, midiToName, $ } from './utils.js';
 
+function resolveFretInfo(note) {
+    if (note.string !== undefined && note.fret !== undefined) {
+        const STRING_NAMES = ["E", "A", "D", "G", "B", "E"];
+        return {
+            string: note.string - 1,
+            fret: note.fret,
+            y: CONSTANTS.STRING_POSITIONS[6 - note.string],
+            stringName: STRING_NAMES[6 - note.string]
+        };
+    }
+    return midiToFret(note.midi);
+}
+
 export function clearVisualNotes() {
     for (const [noteId, noteData] of state.visualNotes) {
         if (noteData.element && noteData.element.parentNode) {
@@ -97,19 +110,7 @@ export function createVisualChord(eventData, baseNoteId) {
     for (let i = 0; i < eventData.notes.length; i++) {
         const chordNote = eventData.notes[i];
         const noteId = baseNoteId + i * 0.1;
-        let fretInfo;
-
-        if (chordNote.string && chordNote.fret !== undefined) {
-            const STRING_NAMES = ["E", "A", "D", "G", "B", "E"];
-            fretInfo = {
-                string: chordNote.string - 1,
-                fret: chordNote.fret,
-                y: CONSTANTS.STRING_POSITIONS[6 - chordNote.string],
-                stringName: STRING_NAMES[6 - chordNote.string]
-            };
-        } else {
-            fretInfo = midiToFret(chordNote.midi);
-        }
+        const fretInfo = resolveFretInfo(chordNote);
 
         if (!fretInfo) continue;
 
@@ -187,7 +188,7 @@ export function updateVisualNotes(beatNow) {
             if (event.type === "chord") {
                 noteData = createVisualNote(event, null);
             } else {
-                const fretInfo = midiToFret(event.midi);
+                const fretInfo = resolveFretInfo(event);
                 if (fretInfo) {
                     noteData = createVisualNote(event, fretInfo);
                 }

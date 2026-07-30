@@ -269,10 +269,20 @@ export function setupMusicXMLUpload() {
 
         const notes = [];
         let currentBeat = 0;
+        let transposeSemitones = 0;
 
         const measures = xmlDoc.querySelectorAll("measure");
 
         measures.forEach(measure => {
+            // Guitar parts are commonly notated an octave above sounding pitch;
+            // <transpose> tells us the semitone offset to get the real (sounding) pitch.
+            const transpose = measure.querySelector("transpose");
+            if (transpose) {
+                const chromatic = parseInt(transpose.querySelector("chromatic")?.textContent || "0");
+                const octaveChange = parseInt(transpose.querySelector("octave-change")?.textContent || "0");
+                transposeSemitones = chromatic + octaveChange * 12;
+            }
+
             const measureNotes = measure.querySelectorAll("note");
 
             measureNotes.forEach(note => {
@@ -300,7 +310,7 @@ export function setupMusicXMLUpload() {
                 const alter = parseInt(pitch.querySelector("alter")?.textContent || 0);
 
                 const noteMap = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-                const midi = 12 * (octave + 1) + noteMap[step] + alter;
+                const midi = 12 * (octave + 1) + noteMap[step] + alter + transposeSemitones;
 
                 let string, fret;
                 const tech = note.querySelector("technical");
