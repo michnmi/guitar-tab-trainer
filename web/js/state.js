@@ -19,6 +19,7 @@ export const state = {
 
     // Song / Exercise State
     bpm: 90,
+    beatsPerBar: CONSTANTS.BEATS_PER_BAR,
     currentExercise: null,
     events: [],
     nextIdx: 0,

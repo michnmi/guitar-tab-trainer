@@ -116,10 +116,16 @@ export function loadExercise(exercise) {
 
     if (exercise.bpm) state.bpm = exercise.bpm;
 
+    const timeSigBeats = exercise.timeSigBeats || 4;
+    const timeSigUnit = exercise.timeSigUnit || 4;
+    state.beatsPerBar = (timeSigBeats * 4) / timeSigUnit;
+
     // Update UI Elements
     if ($("bpm")) $("bpm").value = state.bpm;
     if ($("bpmNum")) $("bpmNum").value = state.bpm;
     if ($("bpmDisplay")) $("bpmDisplay").textContent = state.bpm;
+    if ($("timeSigBeats")) $("timeSigBeats").value = timeSigBeats;
+    if ($("timeSigUnit")) $("timeSigUnit").value = timeSigUnit;
 
     // Reset loop state
     state.isLooping = false;
@@ -270,6 +276,8 @@ export function setupMusicXMLUpload() {
         const notes = [];
         let currentBeat = 0;
         let transposeSemitones = 0;
+        let timeSigBeats = 4;
+        let timeSigUnit = 4;
 
         const measures = xmlDoc.querySelectorAll("measure");
 
@@ -281,6 +289,12 @@ export function setupMusicXMLUpload() {
                 const chromatic = parseInt(transpose.querySelector("chromatic")?.textContent || "0");
                 const octaveChange = parseInt(transpose.querySelector("octave-change")?.textContent || "0");
                 transposeSemitones = chromatic + octaveChange * 12;
+            }
+
+            const time = measure.querySelector("time");
+            if (time) {
+                timeSigBeats = parseInt(time.querySelector("beats")?.textContent || "4");
+                timeSigUnit = parseInt(time.querySelector("beat-type")?.textContent || "4");
             }
 
             const measureNotes = measure.querySelectorAll("note");
@@ -348,7 +362,9 @@ export function setupMusicXMLUpload() {
             name: title,
             bpm: bpm,
             notes: notes,
-            difficulty: "custom"
+            difficulty: "custom",
+            timeSigBeats: timeSigBeats,
+            timeSigUnit: timeSigUnit
         };
     }
 }
