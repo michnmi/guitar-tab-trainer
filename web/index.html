@@ -508,8 +508,22 @@
           </label>
           <label class="mono" style="display:flex; gap:10px; align-items:center; font-size:14px; opacity:1;">
             <input id="countInOn" type="checkbox" checked />
-            4-beat count-in
+            1-bar count-in
           </label>
+        </div>
+        <div style="margin-top:10px;">
+          <label for="timeSigBeats">Time Signature</label>
+          <div class="row" style="gap:6px; align-items:center;">
+            <input id="timeSigBeats" type="number" min="1" max="32" value="4" style="width:55px;" />
+            <span>/</span>
+            <select id="timeSigUnit">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4" selected>4</option>
+              <option value="8">8</option>
+              <option value="16">16</option>
+            </select>
+          </div>
         </div>
       </div>
 

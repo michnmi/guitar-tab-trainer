@@ -6,6 +6,13 @@ export function renderStaticTab(exercise) {
     if (!container) return; // Guard in case element missing
     container.innerHTML = '';
 
+    // Bar boundaries may have just changed (time signature edit), so any
+    // previously selected bar range no longer means the same thing.
+    selectedStartBar = -1;
+    selectedEndBar = -1;
+
+    const beatsPerBar = state.beatsPerBar || 4;
+
     const track = document.createElement('div');
     track.className = 'tab-track';
 
@@ -15,8 +22,8 @@ export function renderStaticTab(exercise) {
         maxBeat = Math.max(maxBeat, beat);
     });
 
-    // Round up to nearest measure (4 beats)
-    const totalMeasures = Math.ceil((maxBeat + 4) / 4);
+    // Round up to nearest measure
+    const totalMeasures = Math.ceil((maxBeat + beatsPerBar) / beatsPerBar);
 
     for (let m = 0; m < totalMeasures; m++) {
         const measureDiv = document.createElement('div');
@@ -47,8 +54,8 @@ export function renderStaticTab(exercise) {
 
         notesToRender.forEach(note => {
             const beat = event.beat;
-            const measureIndex = Math.floor(beat / 4);
-            const beatInMeasure = beat % 4;
+            const measureIndex = Math.floor(beat / beatsPerBar);
+            const beatInMeasure = beat % beatsPerBar;
 
             const targetMeasure = track.children[measureIndex];
             if (!targetMeasure) return;
@@ -82,7 +89,7 @@ export function renderStaticTab(exercise) {
             noteEl.style.top = (20 + visualLineIndex * 16) + 'px';
 
             // Horizontal Position
-            const leftPercent = (beatInMeasure / 4) * 100;
+            const leftPercent = (beatInMeasure / beatsPerBar) * 100;
             noteEl.style.left = `calc(${leftPercent}% + 10px)`; // +10px padding
 
             targetMeasure.appendChild(noteEl);
@@ -121,8 +128,9 @@ function toggleBarSelection(barIndex) {
     });
 
     // Update State
-    const startBeat = selectedStartBar * 4;
-    const endBeat = (selectedEndBar === -1 ? selectedStartBar : selectedEndBar) * 4 + 4;
+    const beatsPerBar = state.beatsPerBar || 4;
+    const startBeat = selectedStartBar * beatsPerBar;
+    const endBeat = (selectedEndBar === -1 ? selectedStartBar : selectedEndBar) * beatsPerBar + beatsPerBar;
 
     state.loopStartBeat = startBeat;
     state.loopEndBeat = endBeat;

@@ -177,14 +177,14 @@ function loop() {
 
                 // 2. Decide: Wait or Seamless?
                 if (state.loopWait) {
-                    // WAIT MODE: Jump back to 4 beats BEFORE the start
-                    const waitBeats = 4;
-                    // Calculate new start time so that 'now' equals 'loopStart - 4'
+                    // WAIT MODE: Jump back one bar BEFORE the start
+                    const waitBeats = state.beatsPerBar;
+                    // Calculate new start time so that 'now' equals 'loopStart - waitBeats'
                     state.startTime = now - beatsToSeconds(state.loopStartBeat - waitBeats, state.bpm);
                     // Update beatNow so visuals render correctly immediately
                     beatNow = state.loopStartBeat - waitBeats;
 
-                    addDebugEntry("⏳ Loop Wait (4 beats)...");
+                    addDebugEntry(`⏳ Loop Wait (${waitBeats} beats)...`);
                 } else {
                     // SEAMLESS MODE: Immediate restart
                     const overshoot = beatNow - state.loopEndBeat;
@@ -208,7 +208,8 @@ function loop() {
         if ($("metroOn").checked) {
             if (now >= state.nextMetroTime && state.nextMetroTime > 0) {
                 const currentBeatInt = Math.floor(beatNow);
-                const barPos = ((currentBeatInt % CONSTANTS.BEATS_PER_BAR) + CONSTANTS.BEATS_PER_BAR) % CONSTANTS.BEATS_PER_BAR;
+                const beatsPerBar = state.beatsPerBar || CONSTANTS.BEATS_PER_BAR;
+                const barPos = ((currentBeatInt % beatsPerBar) + beatsPerBar) % beatsPerBar;
                 if (!state.isLooping || (beatNow >= state.loopStartBeat && beatNow < state.loopEndBeat)) {
                     metroTick(barPos === 0);
                 }
@@ -464,7 +465,7 @@ $("btnStart").addEventListener("click", async () => {
     const secondsPerBeat = 60 / bpm;
 
     const countInCheckbox = $("countInOn");
-    const countInBeats = (countInCheckbox && countInCheckbox.checked) ? 4 : 0;
+    const countInBeats = (countInCheckbox && countInCheckbox.checked) ? state.beatsPerBar : 0;
     const countInSeconds = countInBeats * secondsPerBeat;
 
     const now = state.audioCtx.currentTime + 0.1;
@@ -526,6 +527,24 @@ function setBpm(val) {
 }
 $("bpm").addEventListener("input", (e) => setBpm(e.target.value));
 $("bpmNum").addEventListener("change", (e) => setBpm(e.target.value));
+
+// Manual time signature override — used for bar layout (tab view, loop
+// selection) and the metronome accent, whether or not an exercise is loaded.
+function applyTimeSignature() {
+    const beats = parseInt($("timeSigBeats").value) || 4;
+    const unit = parseInt($("timeSigUnit").value) || 4;
+    state.beatsPerBar = (beats * 4) / unit;
+
+    // Bar boundaries changed, so any active bar-loop selection is now stale.
+    state.isLooping = false;
+    state.loopStartBeat = 0;
+    state.loopEndBeat = 0;
+    if ($("loopMode")) $("loopMode").checked = false;
+
+    if (state.currentExercise) renderStaticTab(state.currentExercise);
+}
+$("timeSigBeats").addEventListener("change", applyTimeSignature);
+$("timeSigUnit").addEventListener("change", applyTimeSignature);
 
 $("fftThreshold").addEventListener("input", (e) => setFftThreshold(e.target.value));
 $("fftThresholdNum").addEventListener("change", (e) => setFftThreshold(e.target.value));
