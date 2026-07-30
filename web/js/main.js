@@ -178,14 +178,14 @@ function loop() {
 
                 // 2. Decide: Wait or Seamless?
                 if (state.loopWait) {
-                    // WAIT MODE: Jump back one bar BEFORE the start
+                    // WAIT MODE: 1-bar count-in before the loop replays, same as the initial practice count-in
                     const waitBeats = state.beatsPerBar;
                     // Calculate new start time so that 'now' equals 'loopStart - waitBeats'
                     state.startTime = now - beatsToSeconds(state.loopStartBeat - waitBeats, state.bpm);
                     // Update beatNow so visuals render correctly immediately
                     beatNow = state.loopStartBeat - waitBeats;
 
-                    addDebugEntry(`⏳ Loop Wait (${waitBeats} beats)...`);
+                    addDebugEntry(`⏳ Loop Wait (1 bar)...`);
                 } else {
                     // SEAMLESS MODE: Immediate restart
                     const overshoot = beatNow - state.loopEndBeat;
@@ -211,10 +211,8 @@ function loop() {
                 const currentBeatInt = Math.floor(beatNow);
                 const beatsPerBar = state.beatsPerBar || CONSTANTS.BEATS_PER_BAR;
                 const barPos = ((currentBeatInt % beatsPerBar) + beatsPerBar) % beatsPerBar;
-                if (!state.isLooping || (beatNow >= state.loopStartBeat && beatNow < state.loopEndBeat)) {
-                    metroTick(barPos === 0);
-                    if (state.debugMode) addDebugEntry(`🥁 tick beat=${currentBeatInt} pos=${(barPos + 1).toFixed(1)}/${beatsPerBar}${barPos === 0 ? " (accent)" : ""}`);
-                }
+                metroTick(barPos === 0);
+                if (state.debugMode) addDebugEntry(`🥁 tick beat=${currentBeatInt} pos=${(barPos + 1).toFixed(1)}/${beatsPerBar}${barPos === 0 ? " (accent)" : ""}`);
                 let nextTime = state.nextMetroTime + beatsToSeconds(1, state.bpm);
                 if (nextTime < now + 0.05) nextTime = now + beatsToSeconds(1, state.bpm);
                 state.nextMetroTime = nextTime;
