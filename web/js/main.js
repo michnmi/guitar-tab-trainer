@@ -185,6 +185,11 @@ function loop() {
                     // Update beatNow so visuals render correctly immediately
                     beatNow = state.loopStartBeat - waitBeats;
 
+                    // Resync the metronome schedule to the new beat grid. Without this
+                    // it keeps ticking on its old real-time schedule, which drifts out
+                    // of phase with the bar boundaries after repeated loop restarts.
+                    state.nextMetroTime = now;
+
                     addDebugEntry(`⏳ Loop Wait (1 bar)...`);
                 } else {
                     // SEAMLESS MODE: Immediate restart
@@ -192,6 +197,11 @@ function loop() {
                     const newBeatTime = state.loopStartBeat + overshoot;
                     state.startTime = now - beatsToSeconds(newBeatTime, state.bpm);
                     beatNow = newBeatTime;
+
+                    // Resync the metronome to the next beat boundary of the new grid (see
+                    // WAIT MODE comment above for why this is necessary).
+                    const nextBeatBoundary = Math.ceil(beatNow - 1e-6);
+                    state.nextMetroTime = state.startTime + beatsToSeconds(nextBeatBoundary, state.bpm);
 
                     addDebugEntry("🔄 Loop Restart");
                 }
