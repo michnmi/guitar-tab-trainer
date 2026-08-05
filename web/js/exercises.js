@@ -278,6 +278,13 @@ export function setupMusicXMLUpload() {
         let transposeSemitones = 0;
         let timeSigBeats = 4;
         let timeSigUnit = 4;
+        // <divisions> = how many <duration> units make up one quarter note. This is the
+        // authoritative way to convert a note's <duration> into beats — unlike the <type>
+        // element (quarter/eighth/16th/...), it already accounts for dotted notes and
+        // tuplets (e.g. a triplet 16th's <duration> is scaled by its 3:2 ratio), so we
+        // don't need to special-case those separately.
+        let divisions = 1;
+        const typeDurationFallback = { whole: 4, half: 2, quarter: 1, eighth: 0.5, '16th': 0.25, '32nd': 0.125, '64th': 0.0625 };
 
         const measures = xmlDoc.querySelectorAll("measure");
 
@@ -297,19 +304,24 @@ export function setupMusicXMLUpload() {
                 timeSigUnit = parseInt(time.querySelector("beat-type")?.textContent || "4");
             }
 
+            const divisionsEl = measure.querySelector("divisions");
+            if (divisionsEl) divisions = parseInt(divisionsEl.textContent) || divisions;
+
             const measureNotes = measure.querySelectorAll("note");
 
             measureNotes.forEach(note => {
                 const isChord = note.querySelector("chord");
                 const isRest = note.querySelector("rest");
 
-                let duration = 1.0;
-                const type = note.querySelector("type")?.textContent;
-                if (type === 'whole') duration = 4;
-                else if (type === 'half') duration = 2;
-                else if (type === 'quarter') duration = 1;
-                else if (type === 'eighth') duration = 0.5;
-                else if (type === '16th') duration = 0.25;
+                const durationEl = note.querySelector("duration");
+                let duration;
+                if (durationEl) {
+                    duration = parseInt(durationEl.textContent) / divisions;
+                } else {
+                    // Grace notes and similar have no <duration>; fall back to <type>.
+                    const type = note.querySelector("type")?.textContent;
+                    duration = typeDurationFallback[type] ?? 1.0;
+                }
 
                 if (isRest) {
                     currentBeat += duration;
