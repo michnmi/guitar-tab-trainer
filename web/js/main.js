@@ -471,6 +471,8 @@ $("btnStart").addEventListener("click", async () => {
     resetPractice();
     state.practicing = true;
 
+    state.isLooping = !!($("loopMode") && $("loopMode").checked);
+
     const bpm = state.bpm;
     const secondsPerBeat = 60 / bpm;
 
@@ -478,16 +480,26 @@ $("btnStart").addEventListener("click", async () => {
     const countInBeats = (countInCheckbox && countInCheckbox.checked) ? state.beatsPerBar : 0;
     const countInSeconds = countInBeats * secondsPerBeat;
 
+    // When looping a bar range, start playback at the loop's first beat instead of
+    // beat 0 of the whole song — otherwise the exercise plays through the (visually
+    // hidden, per visuals.js updateVisualNotes) intro in real time before any note
+    // ever appears on the fretboard.
+    const startBeat = state.isLooping ? state.loopStartBeat : 0;
+
     const now = state.audioCtx.currentTime + 0.1;
-    state.startTime = now + countInSeconds;
+    state.startTime = now + countInSeconds - beatsToSeconds(startBeat, bpm);
 
-    state.nextMetroTime = state.startTime - countInSeconds;
+    state.nextMetroTime = now;
 
-    if ($("loopMode") && $("loopMode").checked) {
-        state.isLooping = true;
+    if (state.isLooping) {
+        // Silently mark notes before the loop as already judged so judgeMisses()
+        // doesn't process a burst of "skip"s for them the instant playback starts.
+        state.events.forEach(ev => {
+            if (ev.beat < state.loopStartBeat) ev.judged = true;
+        });
+        state.nextIdx = state.events.findIndex(e => e.beat >= state.loopStartBeat);
+        if (state.nextIdx === -1) state.nextIdx = 0;
         addDebugEntry(`🔄 Looping Bars: Beats ${state.loopStartBeat}-${state.loopEndBeat}`);
-    } else {
-        state.isLooping = false;
     }
 
     $("btnStart").disabled = true;

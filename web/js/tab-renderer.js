@@ -49,6 +49,27 @@ export function renderStaticTab(exercise) {
         track.appendChild(measureDiv);
     }
 
+    // Notes sharing a beat (chord members) stack on different string rows and
+    // never collide horizontally — what actually overlaps is consecutive
+    // *distinct* beat positions packed close together (fast runs of 16ths/32nds).
+    // So density is measured in columns-per-measure, not raw note count.
+    const MEASURE_WIDTH = 250; // must match .tab-measure CSS width
+    const measureColumnCounts = new Array(totalMeasures).fill(0).map(() => new Set());
+    exercise.notes.forEach(event => {
+        const measureIndex = Math.floor(event.beat / beatsPerBar);
+        if (measureColumnCounts[measureIndex]) {
+            measureColumnCounts[measureIndex].add(Math.round((event.beat % beatsPerBar) * 1000));
+        }
+    });
+
+    function markerSizeForMeasure(measureIndex) {
+        const columns = Math.max(1, measureColumnCounts[measureIndex]?.size || 1);
+        const pixelGap = MEASURE_WIDTH / columns;
+        const fontSize = Math.max(7, Math.min(14, pixelGap * 0.55));
+        const hPadding = Math.max(1, Math.min(4, fontSize * 0.3));
+        return { fontSize, hPadding };
+    }
+
     exercise.notes.forEach(event => {
         const notesToRender = event.type === 'chord' ? event.notes : [event];
 
@@ -62,6 +83,10 @@ export function renderStaticTab(exercise) {
 
             const noteEl = document.createElement('div');
             noteEl.className = 'tab-note-marker';
+
+            const { fontSize, hPadding } = markerSizeForMeasure(measureIndex);
+            noteEl.style.fontSize = `${fontSize}px`;
+            noteEl.style.padding = `0 ${hPadding}px`;
 
             let visualLineIndex, fretNum;
 
