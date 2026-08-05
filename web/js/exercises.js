@@ -361,6 +361,14 @@ export function setupMusicXMLUpload() {
                     fret: fret !== undefined ? fret : undefined
                 };
 
+                // A <tie type="stop"> means this note is the sustained continuation of
+                // the previous one (same pitch, no re-attack) — unlike a <slur>, it's
+                // not a separate pluck. Don't create a second practice event for it;
+                // just let time pass, so the tied-from note's effective duration (via
+                // the gap to whatever event comes next) covers the full held length.
+                const isTieStop = Array.from(note.querySelectorAll("tie")).some(t => t.getAttribute("type") === "stop");
+                const prevIsPlainNote = notes.length > 0 && !notes[notes.length - 1].type;
+
                 if (isChord && notes.length > 0) {
                     const prev = notes[notes.length - 1];
                     if (prev.type === 'chord') {
@@ -372,6 +380,8 @@ export function setupMusicXMLUpload() {
                             notes: [prev, noteObj]
                         };
                     }
+                } else if (isTieStop && prevIsPlainNote) {
+                    currentBeat += duration;
                 } else {
                     notes.push(noteObj);
                     currentBeat += duration;
