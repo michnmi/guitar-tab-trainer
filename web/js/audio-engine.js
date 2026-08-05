@@ -220,6 +220,7 @@ export function tryMatchPlayed(beatNow, playedFreq) {
     for (let i = 0; i < state.events.length; i++) {
         const ev = state.events[i];
         if (ev.hit) continue;
+        if (ev.type === 'rest') continue; // no pitch to match; false starts are handled separately
 
         const timingDiff = beatNow - ev.beat;
 
