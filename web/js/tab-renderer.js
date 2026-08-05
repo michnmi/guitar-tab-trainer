@@ -71,6 +71,11 @@ export function renderStaticTab(exercise) {
     }
 
     exercise.notes.forEach(event => {
+        if (event.type === 'rest') {
+            renderRestMarker(event, track, beatsPerBar);
+            return;
+        }
+
         const notesToRender = event.type === 'chord' ? event.notes : [event];
 
         notesToRender.forEach(note => {
@@ -122,6 +127,29 @@ export function renderStaticTab(exercise) {
     });
 
     container.appendChild(track);
+}
+
+function renderRestMarker(event, track, beatsPerBar) {
+    const measureIndex = Math.floor(event.beat / beatsPerBar);
+    const targetMeasure = track.children[measureIndex];
+    if (!targetMeasure) return;
+
+    const beatInMeasure = event.beat % beatsPerBar;
+    // Clip the displayed span to this measure's box — a rest that crosses a
+    // barline would otherwise overflow into the next measure.
+    const visibleDuration = Math.min(event.duration, beatsPerBar - beatInMeasure);
+
+    const leftPercent = (beatInMeasure / beatsPerBar) * 100;
+    const widthPercent = (visibleDuration / beatsPerBar) * 100;
+
+    const restEl = document.createElement('div');
+    restEl.className = 'tab-rest-marker';
+    restEl.textContent = '𝄽';
+    restEl.style.left = `calc(${leftPercent}% + 10px)`;
+    restEl.style.width = `calc(${widthPercent}% - 4px)`;
+    restEl.style.top = '58px'; // vertical center of the 6 string lines (20px..100px)
+
+    targetMeasure.appendChild(restEl);
 }
 
 let selectedStartBar = -1;

@@ -80,6 +80,40 @@ export function createVisualNote(eventData, fretInfo) {
     return noteData;
 }
 
+export function createVisualRest(eventData) {
+    const noteId = state.nextNoteId++;
+    const fretboard = $("fretboard");
+
+    const restElement = document.createElement("div");
+    restElement.className = "fret-rest";
+    restElement.textContent = "𝄽";
+
+    const baseWidth = 40;
+    const widthPerBeat = 100;
+    const restWidth = Math.max(baseWidth, eventData.duration * widthPerBeat);
+
+    restElement.style.width = restWidth + "px";
+    const startX = CONSTANTS.HIT_ZONE_X + noteTravelDistance;
+    restElement.style.left = "0px";
+    restElement.style.top = "195px"; // vertical center across the 6 strings (45px..345px)
+    restElement.style.transform = `translate3d(${startX}px, -50%, 0)`;
+
+    fretboard.appendChild(restElement);
+
+    const noteData = {
+        element: restElement,
+        eventData: eventData,
+        fretInfo: null,
+        noteId: noteId,
+        spawned: false,
+        duration: eventData.duration,
+        feedbackShown: false
+    };
+
+    state.visualNotes.set(noteId, noteData);
+    return noteData;
+}
+
 export function createVisualChord(eventData, baseNoteId) {
     const fretboard = $("fretboard");
     const chordElements = [];
@@ -187,6 +221,8 @@ export function updateVisualNotes(beatNow) {
             let noteData = null;
             if (event.type === "chord") {
                 noteData = createVisualNote(event, null);
+            } else if (event.type === "rest") {
+                noteData = createVisualRest(event);
             } else {
                 const fretInfo = resolveFretInfo(event);
                 if (fretInfo) {
@@ -227,7 +263,12 @@ export function updateVisualNotes(beatNow) {
             if (noteData.chordGroup) noteData.chordGroup.classList.add("skipped");
         }
 
-        if (timeToHit < -1 || (state.isLooping && event.beat >= state.loopEndBeat)) {
+        // Rests span a duration, not a point, so keep them on screen until their
+        // whole span (not just its start beat) has scrolled past the hit zone.
+        const eventEndBeat = event.type === 'rest' ? event.beat + event.duration : event.beat;
+        const timeToClear = eventEndBeat - beatNow;
+
+        if (timeToClear < -1 || (state.isLooping && event.beat >= state.loopEndBeat)) {
             notesToRemove.push(noteId);
         }
     }

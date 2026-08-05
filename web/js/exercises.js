@@ -324,6 +324,15 @@ export function setupMusicXMLUpload() {
                 }
 
                 if (isRest) {
+                    // Merge consecutive <rest> elements into a single rest span — MusicXML
+                    // often splits one silence into several rests for beaming/typesetting
+                    // reasons, but a practice event per fragment would be over-fragmented.
+                    const prev = notes[notes.length - 1];
+                    if (prev && prev.type === 'rest' && Math.abs(prev.beat + prev.duration - currentBeat) < 1e-6) {
+                        prev.duration += duration;
+                    } else {
+                        notes.push({ type: 'rest', beat: currentBeat, duration });
+                    }
                     currentBeat += duration;
                     return;
                 }

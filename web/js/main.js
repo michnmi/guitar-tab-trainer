@@ -107,6 +107,7 @@ function getCurrentExpectedEvent(beatNow) {
     for (let i = state.nextIdx; i < state.events.length; i++) {
         const ev = state.events[i];
         if (ev.beat > beatNow + lookahead) break;
+        if (ev.type === 'rest') continue; // rests have no pitch to detect
         if (!ev.judged && Math.abs(ev.beat - beatNow) < 1.0) {
             return ev;
         }
@@ -114,14 +115,51 @@ function getCurrentExpectedEvent(beatNow) {
     return null;
 }
 
+// Finds the rest event (if any) whose silence window currently covers beatNow.
+function getCurrentRestEvent(beatNow) {
+    for (let i = state.nextIdx; i < state.events.length; i++) {
+        const ev = state.events[i];
+        if (ev.beat > beatNow) break;
+        if (ev.type === 'rest' && !ev.judged && beatNow < ev.beat + ev.duration) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 function judgeMisses(beatNow) {
     const windowBeats = timingWindowBeats(state.bpm);
 
     state.events.forEach((ev, index) => {
-        // --- DELETE THE WRONG CODE THAT WAS HERE ---
+        if (ev.judged) return;
 
-        // This should be the only logic inside the loop:
-        if (!ev.judged && beatNow > ev.beat + windowBeats) {
+        if (ev.type === 'rest') {
+            // Rests are judged in reverse to notes: staying silent for the whole
+            // span is a hit, making noise anywhere in it is a (false-start) miss.
+            if (beatNow > ev.beat + ev.duration) {
+                ev.judged = true;
+                const playedDuringRest = state.inputAttemptedDuringWindow.has(index);
+
+                if (playedDuringRest) {
+                    ev.miss = true;
+                    state.failCount++;
+                    showHitZoneFeedback(false, false);
+                    addDebugEntry(`❌ FALSE START: played during rest at beat ${ev.beat.toFixed(2)}`);
+                } else {
+                    ev.hit = true;
+                    state.successCount++;
+                    showHitZoneFeedback(true);
+                    addDebugEntry(`✓ REST held (beat ${ev.beat.toFixed(2)}-${(ev.beat + ev.duration).toFixed(2)})`);
+                }
+
+                updateScoreDisplay();
+                const status = $("status");
+                if (status) status.textContent = playedDuringRest ? "✗ played during rest" : "✓ rest";
+            }
+            return;
+        }
+
+        if (beatNow > ev.beat + windowBeats) {
             ev.judged = true;
             const wasAttempted = state.inputAttemptedDuringWindow.has(index);
 
@@ -264,6 +302,11 @@ function loop() {
                 onset = rms > 0.004 || rms > state.lastRms * 1.2;
                 state.lastRms = 0.9 * state.lastRms + 0.1 * rms;
                 updateAdaptiveCalibration(state.analyser, rms, onset && rms > 0.001);
+
+                if (onset) {
+                    const restIdx = getCurrentRestEvent(beatNow);
+                    if (restIdx !== -1) state.inputAttemptedDuringWindow.add(restIdx);
+                }
 
             } catch (error) {
                 console.error(error);
@@ -510,6 +553,7 @@ $("btnStart").addEventListener("click", async () => {
     if (state.events && state.events.length > 0) {
         const exerciseNotes = state.events.map((ev, i) => {
             if (ev.type === "chord") return `${i + 1}: Chord`;
+            if (ev.type === "rest") return `${i + 1}: Rest(${ev.duration.toFixed(2)}b)`;
             return `${i + 1}: ${midiToName(ev.midi)}`;
         }).join(", ");
         addDebugEntry(`🎼 EXERCISE START: ${exerciseNotes}`);
