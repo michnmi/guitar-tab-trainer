@@ -20,7 +20,8 @@ export async function loadAvailableExercises() {
         'basic-strings.json',
         'chromatic-scale.json',
         'simple-melody.json',
-        'house-of-rising-sun.json'
+        'house-of-rising-sun.json',
+        'warmup-alternate-picking-triplets-round1.json'
     ];
 
     // Reset list
