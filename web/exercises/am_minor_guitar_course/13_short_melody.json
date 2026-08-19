@@ -1,0 +1,104 @@
+{
+  "name": "A Minor 13 — Short Melody",
+  "description": "A four-bar melody using only A-natural-minor notes. Listen for phrases resolving to A.",
+  "bpm": 68,
+  "difficulty": "beginner",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 2,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 3,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 7,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 8,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 9,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 10,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 11,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 12,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 13,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 14,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 15,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    }
+  ]
+}

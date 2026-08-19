@@ -1,0 +1,302 @@
+{
+  "name": "A Minor 12 — All Diatonic Seventh Chords",
+  "description": "Arpeggiate Am7, Bm7b5, Cmaj7, Dm7, Em7, Fmaj7, and G7. Each chord begins every four beats.",
+  "bpm": 55,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 0.5,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 1,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 1.5,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 2,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 2.5,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 3,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 4.5,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 5,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 5.5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 6.5,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 7,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 8,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 8.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 9,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 9.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 10,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 10.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 11,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 12,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 12.5,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 13,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 13.5,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 14,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 14.5,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 15,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 16,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 16.5,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 17,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 17.5,
+      "midi": 62,
+      "string": 2,
+      "fret": 3
+    },
+    {
+      "beat": 18,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 18.5,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 19,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 20,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 20.5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 21,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 21.5,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 22,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 22.5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 23,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 24,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "beat": 24.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 25,
+      "midi": 62,
+      "string": 2,
+      "fret": 3
+    },
+    {
+      "beat": 25.5,
+      "midi": 65,
+      "string": 2,
+      "fret": 6
+    },
+    {
+      "beat": 26,
+      "midi": 62,
+      "string": 2,
+      "fret": 3
+    },
+    {
+      "beat": 26.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 27,
+      "midi": 55,
+      "string": 3,
+      "fret": 0
+    }
+  ]
+}

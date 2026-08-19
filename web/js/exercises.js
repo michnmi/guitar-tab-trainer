@@ -4,17 +4,45 @@ import { renderStaticTab } from './tab-renderer.js';
 import { clearVisualNotes } from './visuals.js';
 
 // --- SHARED STATE ---
-// We move this to the top level so both 'loadAvailableExercises' and 
-// 'setupMusicXMLUpload' can access the same list of exercises.
-let loadedExercises = [];
+// We move this to the top level so both 'loadAvailableExercises' and
+// 'setupMusicXMLUpload' can access the same list of courses.
+// Each course is: { id, name, readme, exercises: [exercise, ...] }
+// A "course" is a group of exercises; built-in standalone exercises and
+// uploaded MusicXML files live under the synthetic 'builtin' course.
+let loadedCourses = [];
 
 // --- BUILT-IN EXERCISE LOADING ---
 
-export async function loadAvailableExercises() {
-    const select = $("exercise");
-    if (!select) return;
+// Subfolders of web/exercises/ that hold a course bundle (manifest.json +
+// README.md + exercise JSON files). There's no build step or server-side
+// directory listing, so — same as exerciseFiles below — new courses must be
+// added here by hand.
+const courseFolders = [
+    'am_minor_guitar_course'
+];
 
-    select.innerHTML = "<option>Loading...</option>";
+function getCourseById(id) {
+    return loadedCourses.find(c => c.id === id);
+}
+
+function populateExerciseSelect(course) {
+    const exerciseSelect = $("exercise");
+    if (!exerciseSelect) return;
+    exerciseSelect.innerHTML = "";
+    course.exercises.forEach(ex => {
+        const option = document.createElement("option");
+        option.value = ex.fileName;
+        option.textContent = ex.name;
+        exerciseSelect.appendChild(option);
+    });
+}
+
+export async function loadAvailableExercises() {
+    const courseSelect = $("course");
+    const exerciseSelect = $("exercise");
+    if (!exerciseSelect) return;
+
+    exerciseSelect.innerHTML = "<option>Loading...</option>";
 
     const exerciseFiles = [
         'basic-strings.json',
@@ -25,10 +53,12 @@ export async function loadAvailableExercises() {
     ];
 
     // Reset list
-    loadedExercises = [];
+    loadedCourses = [];
 
-    // 1. Add Metronome Only
-    loadedExercises.push({
+    // 1. Build the built-in "course": Metronome Only + the standalone exercise files
+    const builtinCourse = { id: 'builtin', name: 'Built-in Exercises', readme: null, exercises: [] };
+
+    builtinCourse.exercises.push({
         name: "Metronome Only",
         description: "Just metronome clicks, no tabs",
         bpm: 90,
@@ -37,39 +67,160 @@ export async function loadAvailableExercises() {
         fileName: "metronome-only"
     });
 
-    // 2. Fetch JSON files
     for (const fileName of exerciseFiles) {
         try {
             const res = await fetch(`exercises/${fileName}?v=${Date.now()}`);
             if (res.ok) {
                 const ex = await res.json();
                 ex.fileName = fileName;
-                loadedExercises.push(ex);
+                builtinCourse.exercises.push(ex);
             }
         } catch (e) {
             console.warn(`Skipping ${fileName}:`, e);
         }
     }
 
-    // 3. Populate Dropdown
-    select.innerHTML = "";
-    loadedExercises.forEach(ex => {
-        const option = document.createElement("option");
-        option.value = ex.fileName;
-        option.textContent = ex.name;
-        select.appendChild(option);
-    });
+    loadedCourses.push(builtinCourse);
 
-    // 4. Handle Selection
-    select.onchange = () => {
-        const selected = loadedExercises.find(e => e.fileName === select.value);
+    // 2. Load course bundles (manifest.json + README.md + exercise files)
+    for (const folder of courseFolders) {
+        try {
+            const manifestRes = await fetch(`exercises/${folder}/manifest.json?v=${Date.now()}`);
+            if (!manifestRes.ok) continue;
+            const manifest = await manifestRes.json();
+
+            let readme = null;
+            try {
+                const readmeRes = await fetch(`exercises/${folder}/README.md?v=${Date.now()}`);
+                if (readmeRes.ok) readme = await readmeRes.text();
+            } catch (e) {
+                console.warn(`No README for course ${folder}:`, e);
+            }
+
+            const course = { id: folder, name: manifest.course || folder, readme, exercises: [] };
+
+            for (const entry of manifest.exercises) {
+                try {
+                    const res = await fetch(`exercises/${folder}/${entry.filename}?v=${Date.now()}`);
+                    if (res.ok) {
+                        const ex = await res.json();
+                        ex.fileName = `${folder}/${entry.filename}`;
+                        course.exercises.push(ex);
+                    }
+                } catch (e) {
+                    console.warn(`Skipping ${folder}/${entry.filename}:`, e);
+                }
+            }
+
+            loadedCourses.push(course);
+        } catch (e) {
+            console.warn(`Skipping course ${folder}:`, e);
+        }
+    }
+
+    // 3. Populate the course dropdown
+    if (courseSelect) {
+        courseSelect.innerHTML = "";
+        loadedCourses.forEach(course => {
+            const option = document.createElement("option");
+            option.value = course.id;
+            option.textContent = course.name;
+            courseSelect.appendChild(option);
+        });
+
+        courseSelect.onchange = () => {
+            const course = getCourseById(courseSelect.value);
+            if (!course) return;
+            populateExerciseSelect(course);
+            updateCourseInfoPanel(course);
+            if (course.exercises.length > 0) loadExercise(course.exercises[0]);
+        };
+    }
+
+    // 4. Populate the exercise dropdown for the first course
+    const firstCourse = loadedCourses[0];
+    populateExerciseSelect(firstCourse);
+    updateCourseInfoPanel(firstCourse);
+
+    exerciseSelect.onchange = () => {
+        const course = getCourseById(courseSelect ? courseSelect.value : firstCourse.id) || firstCourse;
+        const selected = course.exercises.find(e => e.fileName === exerciseSelect.value);
         if (selected) loadExercise(selected);
     };
 
-    // Load first one by default
-    if (loadedExercises.length > 0) {
-        loadExercise(loadedExercises[0]);
+    // Load first exercise of the first course by default
+    if (firstCourse.exercises.length > 0) {
+        loadExercise(firstCourse.exercises[0]);
     }
+}
+
+// --- COURSE INFO PANEL (README.md) ---
+
+function updateCourseInfoPanel(course) {
+    const infoPanel = $("courseInfo");
+    const infoContent = $("courseInfoContent");
+    if (!infoPanel || !infoContent) return;
+
+    if (!course.readme) {
+        infoPanel.style.display = "none";
+        infoContent.innerHTML = "";
+        return;
+    }
+
+    infoPanel.style.display = "";
+    infoPanel.open = false;
+    infoContent.innerHTML = renderMarkdownLite(course.readme);
+}
+
+// Minimal Markdown -> HTML renderer for course README files: headers (#/##/###),
+// bullet/numbered lists, bold, and inline code. No dependency, no build step —
+// just enough for the course README format.
+function renderMarkdownLite(md) {
+    const lines = md.split('\n');
+    let html = '';
+    let inList = false;
+
+    const closeList = () => {
+        if (inList) {
+            html += '</ul>';
+            inList = false;
+        }
+    };
+
+    for (let rawLine of lines) {
+        const line = rawLine.trimEnd();
+
+        const h3 = line.match(/^### (.*)/);
+        const h2 = line.match(/^## (.*)/);
+        const h1 = line.match(/^# (.*)/);
+        if (h3) { closeList(); html += `<h4>${inlineMd(h3[1])}</h4>`; continue; }
+        if (h2) { closeList(); html += `<h3>${inlineMd(h2[1])}</h3>`; continue; }
+        if (h1) { closeList(); html += `<h2>${inlineMd(h1[1])}</h2>`; continue; }
+
+        const listItem = line.match(/^(?:-|\d+\.)\s+(.*)/);
+        if (listItem) {
+            if (!inList) { html += '<ul>'; inList = true; }
+            html += `<li>${inlineMd(listItem[1])}</li>`;
+            continue;
+        }
+
+        closeList();
+        if (line.trim() === '') continue;
+        html += `<p>${inlineMd(line)}</p>`;
+    }
+    closeList();
+    return html;
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function inlineMd(text) {
+    let t = escapeHtml(text);
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/`(.+?)`/g, '<code>$1</code>');
+    return t;
 }
 
 // --- CORE LOAD FUNCTION ---
@@ -220,26 +371,30 @@ export function setupMusicXMLUpload() {
             const exercise = convertMusicXMLToExercise(xmlDoc, fileName);
 
             if (exercise) {
-                // --- FIX: Add uploaded exercise to the shared list ---
-
                 // 1. Give it a unique ID so the dropdown can distinguish it
                 const uniqueId = "uploaded-" + Date.now();
                 exercise.fileName = uniqueId;
 
-                // 2. Add to our master list
-                loadedExercises.push(exercise);
+                // 2. Uploads live under the built-in course, alongside the
+                // standalone exercise files.
+                const builtinCourse = loadedCourses.find(c => c.id === 'builtin');
+                builtinCourse.exercises.unshift(exercise);
 
-                // 3. Load it immediately
+                // 3. Switch the course dropdown to "Built-in" and rebuild the
+                // exercise dropdown so the new upload shows up.
+                const courseSelect = $("course");
+                if (courseSelect) courseSelect.value = 'builtin';
+                populateExerciseSelect(builtinCourse);
+                updateCourseInfoPanel(builtinCourse);
+
+                // 4. Give it a distinct label and select it, then load it.
+                const exerciseSelect = $("exercise");
+                const opt = Array.from(exerciseSelect.options).find(o => o.value === uniqueId);
+                if (opt) opt.text = `[Upload] ${exercise.name}`;
+                exerciseSelect.value = uniqueId;
+
                 loadExercise(exercise);
                 showUploadStatus(`Loaded: ${exercise.name} (detected ${exercise.timeSigBeats}/${exercise.timeSigUnit} time)`, "success");
-
-                // 4. Add to Dropdown with the correct ID value
-                const select = $("exercise");
-                const opt = document.createElement("option");
-                opt.text = `[Upload] ${exercise.name}`;
-                opt.value = uniqueId; // Uses the unique ID now
-                select.add(opt, 0);
-                select.value = uniqueId;
             }
         } catch (e) {
             console.error(e);

@@ -1,0 +1,188 @@
+{
+  "name": "A Minor 06 — Diatonic Thirds",
+  "description": "Play the scale in diatonic thirds: A–C, B–D, C–E, and onward.",
+  "bpm": 60,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 45,
+      "string": 6,
+      "fret": 5
+    },
+    {
+      "beat": 0.5,
+      "midi": 48,
+      "string": 6,
+      "fret": 8
+    },
+    {
+      "beat": 1,
+      "midi": 47,
+      "string": 6,
+      "fret": 7
+    },
+    {
+      "beat": 1.5,
+      "midi": 50,
+      "string": 5,
+      "fret": 5
+    },
+    {
+      "beat": 2,
+      "midi": 48,
+      "string": 6,
+      "fret": 8
+    },
+    {
+      "beat": 2.5,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 3,
+      "midi": 50,
+      "string": 5,
+      "fret": 5
+    },
+    {
+      "beat": 3.5,
+      "midi": 53,
+      "string": 5,
+      "fret": 8
+    },
+    {
+      "beat": 4,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 4.5,
+      "midi": 55,
+      "string": 4,
+      "fret": 5
+    },
+    {
+      "beat": 5,
+      "midi": 53,
+      "string": 5,
+      "fret": 8
+    },
+    {
+      "beat": 5.5,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 6,
+      "midi": 55,
+      "string": 4,
+      "fret": 5
+    },
+    {
+      "beat": 6.5,
+      "midi": 59,
+      "string": 4,
+      "fret": 9
+    },
+    {
+      "beat": 7,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 7.5,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 8,
+      "midi": 59,
+      "string": 4,
+      "fret": 9
+    },
+    {
+      "beat": 8.5,
+      "midi": 62,
+      "string": 3,
+      "fret": 7
+    },
+    {
+      "beat": 9,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 9.5,
+      "midi": 64,
+      "string": 3,
+      "fret": 9
+    },
+    {
+      "beat": 10,
+      "midi": 62,
+      "string": 3,
+      "fret": 7
+    },
+    {
+      "beat": 10.5,
+      "midi": 65,
+      "string": 2,
+      "fret": 6
+    },
+    {
+      "beat": 11,
+      "midi": 64,
+      "string": 3,
+      "fret": 9
+    },
+    {
+      "beat": 11.5,
+      "midi": 67,
+      "string": 2,
+      "fret": 8
+    },
+    {
+      "beat": 12,
+      "midi": 65,
+      "string": 2,
+      "fret": 6
+    },
+    {
+      "beat": 12.5,
+      "midi": 69,
+      "string": 2,
+      "fret": 10
+    },
+    {
+      "beat": 13,
+      "midi": 67,
+      "string": 2,
+      "fret": 8
+    },
+    {
+      "beat": 13.5,
+      "midi": 71,
+      "string": 1,
+      "fret": 7
+    },
+    {
+      "beat": 14,
+      "midi": 69,
+      "string": 2,
+      "fret": 10
+    },
+    {
+      "beat": 14.5,
+      "midi": 72,
+      "string": 1,
+      "fret": 8
+    }
+  ]
+}

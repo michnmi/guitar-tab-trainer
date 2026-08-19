@@ -1,0 +1,50 @@
+{
+  "name": "A Minor 01 — Find the A Notes",
+  "description": "Play A in six locations. Say “A” aloud and notice how the same pitch class repeats across the neck.",
+  "bpm": 55,
+  "difficulty": "beginner",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 2,
+      "midi": 45,
+      "string": 6,
+      "fret": 5
+    },
+    {
+      "beat": 3,
+      "midi": 69,
+      "string": 1,
+      "fret": 5
+    },
+    {
+      "beat": 4,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 5,
+      "midi": 69,
+      "string": 2,
+      "fret": 10
+    },
+    {
+      "beat": 6,
+      "midi": 57,
+      "string": 5,
+      "fret": 12
+    }
+  ]
+}

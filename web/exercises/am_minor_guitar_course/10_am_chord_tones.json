@@ -1,0 +1,110 @@
+{
+  "name": "A Minor 10 — Am Chord Tones",
+  "description": "A minor arpeggio across the neck. The notes are A, C, and E.",
+  "bpm": 60,
+  "difficulty": "beginner",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 45,
+      "string": 6,
+      "fret": 5
+    },
+    {
+      "beat": 0.5,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 1,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 1.5,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 2,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 2.5,
+      "midi": 69,
+      "string": 1,
+      "fret": 5
+    },
+    {
+      "beat": 3,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 3.5,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 4,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 4.5,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 5,
+      "midi": 45,
+      "string": 6,
+      "fret": 5
+    },
+    {
+      "beat": 5.5,
+      "midi": 45,
+      "string": 6,
+      "fret": 5
+    },
+    {
+      "beat": 6,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 6.5,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 7,
+      "midi": 60,
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "beat": 7.5,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 8,
+      "midi": 69,
+      "string": 1,
+      "fret": 5
+    }
+  ]
+}

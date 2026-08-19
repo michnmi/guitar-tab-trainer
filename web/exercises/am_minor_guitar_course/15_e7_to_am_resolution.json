@@ -1,0 +1,176 @@
+{
+  "name": "A Minor 15 — E7 Resolves to Am",
+  "description": "Arpeggiate E7 (E G# B D), then Am (A C E A). Listen for G# resolving upward to A.",
+  "bpm": 55,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 0.5,
+      "midi": 56,
+      "string": 4,
+      "fret": 6
+    },
+    {
+      "beat": 1,
+      "midi": 59,
+      "string": 4,
+      "fret": 9
+    },
+    {
+      "beat": 1.5,
+      "midi": 62,
+      "string": 3,
+      "fret": 7
+    },
+    {
+      "beat": 2,
+      "midi": 59,
+      "string": 4,
+      "fret": 9
+    },
+    {
+      "beat": 2.5,
+      "midi": 56,
+      "string": 4,
+      "fret": 6
+    },
+    {
+      "beat": 3,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 3.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 4.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 5.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 6.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 7,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 7.5,
+      "midi": 56,
+      "string": 4,
+      "fret": 6
+    },
+    {
+      "beat": 8,
+      "midi": 59,
+      "string": 4,
+      "fret": 9
+    },
+    {
+      "beat": 8.5,
+      "midi": 62,
+      "string": 3,
+      "fret": 7
+    },
+    {
+      "beat": 9,
+      "midi": 59,
+      "string": 4,
+      "fret": 9
+    },
+    {
+      "beat": 9.5,
+      "midi": 56,
+      "string": 4,
+      "fret": 6
+    },
+    {
+      "beat": 10,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 10.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 11,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 11.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 12,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 12.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 13,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 13.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    }
+  ]
+}

@@ -89,6 +89,37 @@
       color: #b42318;
     }
 
+    /* Course info panel */
+    .course-info {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 6px;
+      max-width: 480px;
+      background: #f9f9f9;
+    }
+
+    .course-info summary {
+      cursor: pointer;
+      font-size: 13px;
+      opacity: 0.75;
+    }
+
+    .course-info h2,
+    .course-info h3,
+    .course-info h4 {
+      margin: 10px 0 4px 0;
+    }
+
+    .course-info p {
+      margin: 6px 0;
+    }
+
+    .course-info ul {
+      margin: 4px 0;
+      padding-left: 20px;
+    }
+
     .notes {
       display: flex;
       gap: 10px;
@@ -528,11 +559,21 @@
     <div class="row" style="margin-top:16px; gap:32px; flex-wrap:wrap;">
       <div style="min-width:200px;">
         <div style="margin-bottom:10px;">
+          <label for="course">Course</label>
+          <select id="course">
+            <option value="">Loading courses...</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px;">
           <label for="exercise">Exercise</label>
           <select id="exercise">
             <option value="">Loading exercises...</option>
           </select>
         </div>
+        <details id="courseInfo" class="course-info" style="display:none;">
+          <summary>Course Info</summary>
+          <div id="courseInfoContent"></div>
+        </details>
       </div>
 
       <div style="min-width:300px;">
