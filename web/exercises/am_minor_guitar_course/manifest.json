@@ -1,0 +1,96 @@
+{
+  "course": "A Minor Guitar Course",
+  "version": 1,
+  "exercises": [
+    {
+      "filename": "01_find_the_a_notes.json",
+      "name": "A Minor 01 — Find the A Notes",
+      "bpm": 55,
+      "notes": 7
+    },
+    {
+      "filename": "02_open_position_scale.json",
+      "name": "A Minor 02 — Open-Position Scale",
+      "bpm": 60,
+      "notes": 15
+    },
+    {
+      "filename": "03_fifth_position_scale.json",
+      "name": "A Minor 03 — Fifth-Position Scale",
+      "bpm": 60,
+      "notes": 33
+    },
+    {
+      "filename": "04_groups_of_three.json",
+      "name": "A Minor 04 — Groups of Three",
+      "bpm": 65,
+      "notes": 45
+    },
+    {
+      "filename": "05_groups_of_four.json",
+      "name": "A Minor 05 — Groups of Four",
+      "bpm": 60,
+      "notes": 56
+    },
+    {
+      "filename": "06_scale_in_thirds.json",
+      "name": "A Minor 06 — Diatonic Thirds",
+      "bpm": 60,
+      "notes": 30
+    },
+    {
+      "filename": "07_string_crossing.json",
+      "name": "A Minor 07 — String Crossing",
+      "bpm": 65,
+      "notes": 30
+    },
+    {
+      "filename": "08_alternate_picking_eighths.json",
+      "name": "A Minor 08 — Alternate-Picking Eighths",
+      "bpm": 75,
+      "notes": 66
+    },
+    {
+      "filename": "09_alternate_picking_triplets.json",
+      "name": "A Minor 09 — Alternate-Picking Triplets",
+      "bpm": 60,
+      "notes": 66
+    },
+    {
+      "filename": "10_am_chord_tones.json",
+      "name": "A Minor 10 — Am Chord Tones",
+      "bpm": 60,
+      "notes": 17
+    },
+    {
+      "filename": "11_diatonic_triads.json",
+      "name": "A Minor 11 — All Diatonic Triads",
+      "bpm": 58,
+      "notes": 35
+    },
+    {
+      "filename": "12_diatonic_seventh_chords.json",
+      "name": "A Minor 12 — All Diatonic Seventh Chords",
+      "bpm": 55,
+      "notes": 49
+    },
+    {
+      "filename": "13_short_melody.json",
+      "name": "A Minor 13 — Short Melody",
+      "bpm": 68,
+      "notes": 16
+    },
+    {
+      "filename": "14_harmonic_minor.json",
+      "name": "A Minor 14 — A Harmonic Minor",
+      "bpm": 55,
+      "notes": 15
+    },
+    {
+      "filename": "15_e7_to_am_resolution.json",
+      "name": "A Minor 15 — E7 Resolves to Am",
+      "bpm": 55,
+      "notes": 28
+    }
+  ]
+}

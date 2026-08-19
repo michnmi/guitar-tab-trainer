@@ -1,0 +1,98 @@
+{
+  "name": "A Minor 14 — A Harmonic Minor",
+  "description": "A harmonic minor introduces G-sharp: A B C D E F G# A. Hear the strong pull from G# to A.",
+  "bpm": 55,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 2,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 3,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 5,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 6,
+      "midi": 56,
+      "string": 4,
+      "fret": 6
+    },
+    {
+      "beat": 7,
+      "midi": 57,
+      "string": 4,
+      "fret": 7
+    },
+    {
+      "beat": 8,
+      "midi": 56,
+      "string": 4,
+      "fret": 6
+    },
+    {
+      "beat": 9,
+      "midi": 53,
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "beat": 10,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 11,
+      "midi": 50,
+      "string": 4,
+      "fret": 0
+    },
+    {
+      "beat": 12,
+      "midi": 48,
+      "string": 5,
+      "fret": 3
+    },
+    {
+      "beat": 13,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 14,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    }
+  ]
+}
