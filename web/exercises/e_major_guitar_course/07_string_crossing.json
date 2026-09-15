@@ -1,0 +1,176 @@
+{
+  "name": "E Major 07 — String Crossing",
+  "description": "Cross adjacent strings using only E-major notes. Keep unused strings quiet.",
+  "bpm": 64,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 0.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 1.5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 2,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 2.5,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 3,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 3.5,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 4,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 4.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 5,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 5.5,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 6,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 6.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 7,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 7.5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 8,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 8.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 9,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 9.5,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 10,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 10.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 11,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 11.5,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 12,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 12.5,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 13,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 13.5,
+      "midi": 68,
+      "string": 1,
+      "fret": 4
+    }
+  ]
+}

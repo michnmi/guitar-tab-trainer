@@ -1,0 +1,104 @@
+{
+  "name": "E Major 13 — Short Melody",
+  "description": "A four-bar melody using only E-major notes. Hear D# rise to E and make E feel like home.",
+  "bpm": 68,
+  "difficulty": "beginner",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 2,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 3,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 5,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 7,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 8,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 9,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 10,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 11,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 12,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 13,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 14,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 15,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    }
+  ]
+}

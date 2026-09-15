@@ -1,0 +1,134 @@
+{
+  "name": "E Major 10 — E Chord Tones",
+  "description": "E-major arpeggio in open position. Identify every E as root, G# as major third, and B as perfect fifth.",
+  "bpm": 58,
+  "difficulty": "beginner",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 0.5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 1,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 1.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 2,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 2.5,
+      "midi": 64,
+      "string": 1,
+      "fret": 0
+    },
+    {
+      "beat": 3,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 3.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 4,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 4.5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 5,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 5.5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 6.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 7,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 7.5,
+      "midi": 64,
+      "string": 1,
+      "fret": 0
+    },
+    {
+      "beat": 8,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 8.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 9,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 9.5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 10,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "name": "E Major 11 — Teacher-Shape Diatonic Triads",
+  "description": "Arpeggiate I E, ii F#m, iii G#m, IV A, V B, vi C#m, vii° D#dim, and the octave E using the compact root–third–fifth shapes.",
+  "bpm": 55,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 0.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 1,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 1.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 2,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 4.5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 5,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 5.5,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 8,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 8.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 9,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 9.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 10,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 12,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 12.5,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 13,
+      "midi": 64,
+      "string": 1,
+      "fret": 0
+    },
+    {
+      "beat": 13.5,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 14,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 16,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 16.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 17,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 17.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 18,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 20,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 20.5,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 21,
+      "midi": 68,
+      "string": 1,
+      "fret": 4
+    },
+    {
+      "beat": 21.5,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 22,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 24,
+      "midi": 51,
+      "string": 5,
+      "fret": 6
+    },
+    {
+      "beat": 24.5,
+      "midi": 66,
+      "string": 2,
+      "fret": 7
+    },
+    {
+      "beat": 25,
+      "midi": 69,
+      "string": 1,
+      "fret": 5
+    },
+    {
+      "beat": 25.5,
+      "midi": 66,
+      "string": 2,
+      "fret": 7
+    },
+    {
+      "beat": 26,
+      "midi": 51,
+      "string": 5,
+      "fret": 6
+    },
+    {
+      "beat": 28,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 28.5,
+      "midi": 68,
+      "string": 2,
+      "fret": 9
+    },
+    {
+      "beat": 29,
+      "midi": 71,
+      "string": 1,
+      "fret": 7
+    },
+    {
+      "beat": 29.5,
+      "midi": 68,
+      "string": 2,
+      "fret": 9
+    },
+    {
+      "beat": 30,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    }
+  ]
+}

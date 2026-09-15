@@ -1,0 +1,152 @@
+{
+  "name": "E Major 12 — Roots, Thirds, and Fifths",
+  "description": "Separate the teacher-shape triads into three voices: first all roots, then all thirds, then all fifths. Name every note and harmonic role.",
+  "bpm": 55,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 2,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 3,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 5,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 6,
+      "midi": 51,
+      "string": 5,
+      "fret": 6
+    },
+    {
+      "beat": 7,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 10,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 11,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 12,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 13,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 14,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 15,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 16,
+      "midi": 66,
+      "string": 2,
+      "fret": 7
+    },
+    {
+      "beat": 17,
+      "midi": 68,
+      "string": 2,
+      "fret": 9
+    },
+    {
+      "beat": 20,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 21,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 22,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 23,
+      "midi": 64,
+      "string": 1,
+      "fret": 0
+    },
+    {
+      "beat": 24,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 25,
+      "midi": 68,
+      "string": 1,
+      "fret": 4
+    },
+    {
+      "beat": 26,
+      "midi": 69,
+      "string": 1,
+      "fret": 5
+    },
+    {
+      "beat": 27,
+      "midi": 71,
+      "string": 1,
+      "fret": 7
+    }
+  ]
+}

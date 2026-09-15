@@ -1,0 +1,50 @@
+{
+  "name": "E Major 01 — Find the E Notes",
+  "description": "Play E in seven locations. Say “E” aloud and notice how the tonic repeats across the fretboard.",
+  "bpm": 55,
+  "difficulty": "beginner",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 1,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 2,
+      "midi": 64,
+      "string": 1,
+      "fret": 0
+    },
+    {
+      "beat": 3,
+      "midi": 52,
+      "string": 5,
+      "fret": 7
+    },
+    {
+      "beat": 4,
+      "midi": 64,
+      "string": 3,
+      "fret": 9
+    },
+    {
+      "beat": 5,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 6,
+      "midi": 52,
+      "string": 6,
+      "fret": 12
+    }
+  ]
+}

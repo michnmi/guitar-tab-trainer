@@ -18,7 +18,8 @@ let loadedCourses = [];
 // directory listing, so — same as exerciseFiles below — new courses must be
 // added here by hand.
 const courseFolders = [
-    'am_minor_guitar_course'
+    'am_minor_guitar_course',
+    'e_major_guitar_course'
 ];
 
 function getCourseById(id) {

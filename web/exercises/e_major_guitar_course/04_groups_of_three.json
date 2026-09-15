@@ -1,0 +1,278 @@
+{
+  "name": "E Major 04 — Groups of Three",
+  "description": "Play overlapping three-note groups through E major. Say every note name while maintaining alternate picking.",
+  "bpm": 62,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 0.5,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 1,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 1.5,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 2,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 2.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 3,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 3.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 4.5,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 5.5,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 6,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 6.5,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 7,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 7.5,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 8,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 8.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 9,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 9.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 10,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 10.5,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 11,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 11.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 12,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 12.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 13,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 13.5,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 14,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 14.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 15,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 15.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 16,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 16.5,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 17,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 17.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 18,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 18.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 19,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 19.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 20,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 20.5,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 21,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 21.5,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 22,
+      "midi": 68,
+      "string": 1,
+      "fret": 4
+    }
+  ]
+}
