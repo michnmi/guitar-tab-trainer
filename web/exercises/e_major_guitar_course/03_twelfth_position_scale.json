@@ -1,0 +1,194 @@
+{
+  "name": "E Major 03 — Twelfth-Position Scale",
+  "description": "E major across all six strings around twelfth position, ascending and descending as eighth notes.",
+  "bpm": 58,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 52,
+      "string": 6,
+      "fret": 12
+    },
+    {
+      "beat": 0.5,
+      "midi": 54,
+      "string": 6,
+      "fret": 14
+    },
+    {
+      "beat": 1,
+      "midi": 56,
+      "string": 5,
+      "fret": 11
+    },
+    {
+      "beat": 1.5,
+      "midi": 57,
+      "string": 5,
+      "fret": 12
+    },
+    {
+      "beat": 2,
+      "midi": 59,
+      "string": 5,
+      "fret": 14
+    },
+    {
+      "beat": 2.5,
+      "midi": 61,
+      "string": 4,
+      "fret": 11
+    },
+    {
+      "beat": 3,
+      "midi": 63,
+      "string": 4,
+      "fret": 13
+    },
+    {
+      "beat": 3.5,
+      "midi": 64,
+      "string": 4,
+      "fret": 14
+    },
+    {
+      "beat": 4,
+      "midi": 66,
+      "string": 3,
+      "fret": 11
+    },
+    {
+      "beat": 4.5,
+      "midi": 68,
+      "string": 3,
+      "fret": 13
+    },
+    {
+      "beat": 5,
+      "midi": 69,
+      "string": 3,
+      "fret": 14
+    },
+    {
+      "beat": 5.5,
+      "midi": 71,
+      "string": 2,
+      "fret": 12
+    },
+    {
+      "beat": 6,
+      "midi": 73,
+      "string": 2,
+      "fret": 14
+    },
+    {
+      "beat": 6.5,
+      "midi": 75,
+      "string": 1,
+      "fret": 11
+    },
+    {
+      "beat": 7,
+      "midi": 76,
+      "string": 1,
+      "fret": 12
+    },
+    {
+      "beat": 7.5,
+      "midi": 78,
+      "string": 1,
+      "fret": 14
+    },
+    {
+      "beat": 8,
+      "midi": 76,
+      "string": 1,
+      "fret": 12
+    },
+    {
+      "beat": 8.5,
+      "midi": 75,
+      "string": 1,
+      "fret": 11
+    },
+    {
+      "beat": 9,
+      "midi": 73,
+      "string": 2,
+      "fret": 14
+    },
+    {
+      "beat": 9.5,
+      "midi": 71,
+      "string": 2,
+      "fret": 12
+    },
+    {
+      "beat": 10,
+      "midi": 69,
+      "string": 3,
+      "fret": 14
+    },
+    {
+      "beat": 10.5,
+      "midi": 68,
+      "string": 3,
+      "fret": 13
+    },
+    {
+      "beat": 11,
+      "midi": 66,
+      "string": 3,
+      "fret": 11
+    },
+    {
+      "beat": 11.5,
+      "midi": 64,
+      "string": 4,
+      "fret": 14
+    },
+    {
+      "beat": 12,
+      "midi": 63,
+      "string": 4,
+      "fret": 13
+    },
+    {
+      "beat": 12.5,
+      "midi": 61,
+      "string": 4,
+      "fret": 11
+    },
+    {
+      "beat": 13,
+      "midi": 59,
+      "string": 5,
+      "fret": 14
+    },
+    {
+      "beat": 13.5,
+      "midi": 57,
+      "string": 5,
+      "fret": 12
+    },
+    {
+      "beat": 14,
+      "midi": 56,
+      "string": 5,
+      "fret": 11
+    },
+    {
+      "beat": 14.5,
+      "midi": 54,
+      "string": 6,
+      "fret": 14
+    },
+    {
+      "beat": 15,
+      "midi": 52,
+      "string": 6,
+      "fret": 12
+    }
+  ]
+}

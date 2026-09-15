@@ -1,0 +1,128 @@
+{
+  "name": "E Major 14 — B Resolves to E",
+  "description": "Arpeggiate V B (B D# F#), then I E (E G# B). Listen especially for D# resolving upward to E.",
+  "bpm": 54,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 0.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 1,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 1.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 2,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 2.5,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 3,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 3.5,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 4,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 4.5,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 5,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 5.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 6,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 6.5,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 7,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 7.5,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 8,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 8.5,
+      "midi": 59,
+      "string": 2,
+      "fret": 0
+    },
+    {
+      "beat": 9,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 9.5,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "course": "E Major Guitar Course",
+  "version": 1,
+  "tuning": "E A D G B E",
+  "scale": [
+    "E",
+    "F#",
+    "G#",
+    "A",
+    "B",
+    "C#",
+    "D#"
+  ],
+  "exercises": [
+    {
+      "filename": "01_find_the_e_notes.json",
+      "name": "E Major 01 — Find the E Notes",
+      "bpm": 55,
+      "notes": 7
+    },
+    {
+      "filename": "02_open_position_scale.json",
+      "name": "E Major 02 — Open-Position Scale",
+      "bpm": 60,
+      "notes": 15
+    },
+    {
+      "filename": "03_twelfth_position_scale.json",
+      "name": "E Major 03 — Twelfth-Position Scale",
+      "bpm": 58,
+      "notes": 31
+    },
+    {
+      "filename": "04_groups_of_three.json",
+      "name": "E Major 04 — Groups of Three",
+      "bpm": 62,
+      "notes": 45
+    },
+    {
+      "filename": "05_groups_of_four.json",
+      "name": "E Major 05 — Groups of Four",
+      "bpm": 58,
+      "notes": 56
+    },
+    {
+      "filename": "06_scale_in_thirds.json",
+      "name": "E Major 06 — Diatonic Thirds",
+      "bpm": 58,
+      "notes": 30
+    },
+    {
+      "filename": "07_string_crossing.json",
+      "name": "E Major 07 — String Crossing",
+      "bpm": 64,
+      "notes": 28
+    },
+    {
+      "filename": "08_alternate_picking_eighths.json",
+      "name": "E Major 08 — Alternate-Picking Eighths",
+      "bpm": 72,
+      "notes": 66
+    },
+    {
+      "filename": "09_alternate_picking_triplets.json",
+      "name": "E Major 09 — Alternate-Picking Triplets",
+      "bpm": 58,
+      "notes": 66
+    },
+    {
+      "filename": "10_e_chord_tones.json",
+      "name": "E Major 10 — E Chord Tones",
+      "bpm": 58,
+      "notes": 21
+    },
+    {
+      "filename": "11_teacher_shape_diatonic_triads.json",
+      "name": "E Major 11 — Teacher-Shape Diatonic Triads",
+      "bpm": 55,
+      "notes": 40
+    },
+    {
+      "filename": "12_roots_thirds_fifths.json",
+      "name": "E Major 12 — Roots, Thirds, and Fifths",
+      "bpm": 55,
+      "notes": 24
+    },
+    {
+      "filename": "13_short_melody.json",
+      "name": "E Major 13 — Short Melody",
+      "bpm": 68,
+      "notes": 16
+    },
+    {
+      "filename": "14_b_to_e_resolution.json",
+      "name": "E Major 14 — B Resolves to E",
+      "bpm": 54,
+      "notes": 20
+    },
+    {
+      "filename": "15_major_key_progressions.json",
+      "name": "E Major 15 — Essential Progressions",
+      "bpm": 60,
+      "notes": 39
+    }
+  ]
+}

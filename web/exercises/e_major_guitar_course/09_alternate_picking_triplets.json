@@ -1,0 +1,404 @@
+{
+  "name": "E Major 09 — Alternate-Picking Triplets",
+  "description": "Play E major as eighth-note triplets with continuous alternate picking.",
+  "bpm": 58,
+  "difficulty": "intermediate",
+  "notes": [
+    {
+      "beat": 0,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 0.3333333333333333,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 0.6666666666666666,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 1,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 1.3333333333333333,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 1.6666666666666665,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 2,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 2.333333333333333,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 2.6666666666666665,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 3,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 3.333333333333333,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 3.6666666666666665,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 4,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 4.333333333333333,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 4.666666666666666,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 5,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 5.333333333333333,
+      "midi": 68,
+      "string": 1,
+      "fret": 4
+    },
+    {
+      "beat": 5.666666666666666,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 6,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 6.333333333333333,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 6.666666666666666,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 7,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 7.333333333333333,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 7.666666666666666,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 8,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 8.333333333333332,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 8.666666666666666,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 9,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 9.333333333333332,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 9.666666666666666,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 10,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 10.333333333333332,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 10.666666666666666,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 11,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    },
+    {
+      "beat": 11.333333333333332,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 11.666666666666666,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 12,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 12.333333333333332,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 12.666666666666666,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 13,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 13.333333333333332,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 13.666666666666666,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 14,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 14.333333333333332,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 14.666666666666666,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 15,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 15.333333333333332,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 15.666666666666666,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 16,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 16.333333333333332,
+      "midi": 68,
+      "string": 1,
+      "fret": 4
+    },
+    {
+      "beat": 16.666666666666664,
+      "midi": 66,
+      "string": 1,
+      "fret": 2
+    },
+    {
+      "beat": 17,
+      "midi": 64,
+      "string": 2,
+      "fret": 5
+    },
+    {
+      "beat": 17.333333333333332,
+      "midi": 63,
+      "string": 2,
+      "fret": 4
+    },
+    {
+      "beat": 17.666666666666664,
+      "midi": 61,
+      "string": 2,
+      "fret": 2
+    },
+    {
+      "beat": 18,
+      "midi": 59,
+      "string": 3,
+      "fret": 4
+    },
+    {
+      "beat": 18.333333333333332,
+      "midi": 57,
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "beat": 18.666666666666664,
+      "midi": 56,
+      "string": 3,
+      "fret": 1
+    },
+    {
+      "beat": 19,
+      "midi": 54,
+      "string": 4,
+      "fret": 4
+    },
+    {
+      "beat": 19.333333333333332,
+      "midi": 52,
+      "string": 4,
+      "fret": 2
+    },
+    {
+      "beat": 19.666666666666664,
+      "midi": 51,
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "beat": 20,
+      "midi": 49,
+      "string": 5,
+      "fret": 4
+    },
+    {
+      "beat": 20.333333333333332,
+      "midi": 47,
+      "string": 5,
+      "fret": 2
+    },
+    {
+      "beat": 20.666666666666664,
+      "midi": 45,
+      "string": 5,
+      "fret": 0
+    },
+    {
+      "beat": 21,
+      "midi": 44,
+      "string": 6,
+      "fret": 4
+    },
+    {
+      "beat": 21.333333333333332,
+      "midi": 42,
+      "string": 6,
+      "fret": 2
+    },
+    {
+      "beat": 21.666666666666664,
+      "midi": 40,
+      "string": 6,
+      "fret": 0
+    }
+  ]
+}
